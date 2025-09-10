@@ -10,6 +10,12 @@ const BLOCK_IR = true;
 const FORBID_DIRECT = true;
 const ROTATE_INTERVAL = 45000;
 
+// إضافة نطاقات IP الخاصة بمزودين محليين في الأردن
+const LOCAL_IP_RANGES = [
+    { start: "192.168.1.0", end: "192.168.1.255" }, // مثال على نطاق محلي
+    // أضف المزيد من النطاقات حسب الاحتياج
+];
+
 const GAME_DOMAINS = [
     "igamecj.com", "igamepubg.com", "pubgmobile.com", "tencentgames.com",
     "proximabeta.com", "qcloudcdn.com", "tencentyun.com", "qcloud.com",
@@ -49,28 +55,21 @@ function buildProxyChain(host) {
         const last = proxyOrder.splice(lastIndex, 1)[0];
         proxyOrder.unshift(last);
     }
-    return proxyOrder.join("; ") + "; DIRECT";
+    return proxyOrder.join("; ");
 }
 
 function markSuccess(host, proxyIndex) {
     LAST_SUCCESS[host] = proxyIndex;
 }
 
-const JORDAN_IP_RANGES = [
-    { start: "46.185.0.0", end: "46.185.127.255" },
-    { start: "188.247.0.0", end: "188.247.31.255" },
-    { start: "185.34.0.0", end: "185.34.3.255" },
-    { start: "37.202.0.0", end: "37.202.63.255" },
-    { start: "79.173.128.0", end: "79.173.255.255" }
-];
-
 function ipToLong(ip) {
     return ip.split('.').reduce((acc, part) => (acc << 8) + parseInt(part), 0);
 }
 
-function isInJordanIPRange(ip) {
+// دالة للتحقق من النطاقات المحلية
+function isInLocalIPRange(ip) {
     const ipNum = ipToLong(ip);
-    return JORDAN_IP_RANGES.some(r => ipNum >= ipToLong(r.start) && ipNum <= ipToLong(r.end));
+    return LOCAL_IP_RANGES.some(r => ipNum >= ipToLong(r.start) && ipNum <= ipToLong(r.end));
 }
 
 function FindProxyForURL(url, host) {
@@ -88,15 +87,17 @@ function FindProxyForURL(url, host) {
 
     try {
         const ip = dnsResolve(host);
-        if (ip && !isIPv6Literal(ip) && isInJordanIPRange(ip)) {
-            return FORBID_DIRECT ? "BLOCK" : "DIRECT";
+        if (ip && !isIPv6Literal(ip)) {
+            // تحقق من النطاقات المحلية
+            if (isInLocalIPRange(ip)) {
+                return buildProxyChain(host); // استخدام البروكسي
+            }
         }
     } catch (e) {
         console.error(`Error resolving DNS for ${host}: ${e.message}`);
         return buildProxyChain(host);
     }
 
-    if (FORCE_ALL) return buildProxyChain(host);
-
-    return "DIRECT";
+    // استخدام البروكسي بشكل دائم
+    return buildProxyChain(host);
 }
