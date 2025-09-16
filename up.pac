@@ -1,28 +1,31 @@
-// ===================== Jordan-first PUBG PAC (FINAL - SOCKS5 Only) =====================
-// يقلّد سلوك Gear Up: يوجّه نطاقات PUBG عبر SOCKS5 الأردني مع دوران واحتياطي.
-// ملاحظة: لا يستخدم خوادم Gear Up؛ يعتمد على بروكسياتك.
+// ===================== Jordan-first PUBG PAC (SOCKS5 - مع بدائل JO عامة) =====================
+// يوجّه نطاقات PUBG عبر SOCKS5 الأردني باستخدام بورت 1080 وبروكسيات بديلة من القوائم العامة.
 
 // ----------[CONFIG]----------
-var USE_SOCKS = true;            // تفعيل SOCKS5
-var USE_SOCKS_SAFWAH = true;     // وضع الصفّاح (تحسينات ودوران)
-var FORCE_ALL = false;           // true = توجيه كل الترافيك عبر البروكسي
+var USE_SOCKS = true;           
+var USE_SOCKS_SAFWAH = true;    
+var FORCE_ALL = false;
 
-// (إبقاء القائمة الأصلية كمرجع؛ لن تُستخدم عند تفعيل SOCKS5)
 var JO_PROXIES = [
-  ["91.106.109.12", 8085]
+  ["91.106.109.12", 8085] // مرجع فقط (غير مستخدم عند SOCKS5)
 ];
 
-// قائمة بروكسيات SOCKS5 (9050 أولاً ثم 1080)
+// SOCKS5 أساسي + بدائل أردنية عامة
 var JO_PROXIES_SOCKS = [
-  ["91.106.109.12", 9050],
-  ["91.106.109.12", 1080]
+  ["91.106.109.12", 1080],   // أساسي خاص بك
+
+  // بدائل عامة (قد تتغير فعاليتها)
+  ["185.51.215.229", 1080],
+  ["213.186.179.175", 43603],
+  ["213.186.179.175", 29939],
+  ["213.186.179.175", 16641],
+  ["213.186.179.175", 26133]
 ];
 
-// خيار يضمن أن ترافيك PUBG يمر عبر SOCKS5 فقط (لا HTTP بالخطأ)
+// يضمن أن ترافيك PUBG يمر عبر SOCKS5 فقط
 var ENFORCE_SOCKS5_FOR_PUBG = true;
 
 // ----------[DOMAINS]----------
-// نطاقات PUBG + بعض شبكات CDN الشائعة
 var PUBG = [
   "*.pubgmobile.com","*.cdn.pubgmobile.com","*.igamecj.com","*.proximabeta.com",
   "*.tencent.com","*.tencentgames.com","*.qcloud.com","*.qcloudcdn.com",
@@ -30,7 +33,6 @@ var PUBG = [
   "*.cdn77.com","*.bytecdn.cn","*.vtcdn.com"
 ];
 
-// مواقع تُترك DIRECT دائمًا
 var EXEMPT = [
   "*.local","localhost",
   "*.youtube.com","*.googlevideo.com","*.ytimg.com",
@@ -41,7 +43,6 @@ var EXEMPT = [
   "*.microsoft.com","*.windowsupdate.com"
 ];
 
-// شبكات محلية تُترك DIRECT
 var LAN = [
   ["10.0.0.0","255.0.0.0"],
   ["172.16.0.0","255.240.0.0"],
@@ -52,7 +53,6 @@ var LAN = [
 // ----------[HELPERS]----------
 function nowSec(){ return Math.floor((new Date()).getTime()/1000); }
 
-// يبني سلسلة احتياطية مع دوران كل 60 ثانية
 function pickProxyChain(list){
   var baseIdx = Math.floor(nowSec()/60) % list.length;
   var chain = [];
@@ -86,29 +86,19 @@ function isLAN(host){
 }
 
 function pickProxy(){
-  // SOCKS5 فقط عند تفعيل الصفّاح/السلوك الحالي
   return pickProxyChain(JO_PROXIES_SOCKS);
 }
 
 // ----------[MAIN]----------
 function FindProxyForURL(url,host){
   var h = host ? host.toLowerCase() : host;
-
-  // LAN & مواقع مستثناة
   if (isLAN(h) || anyMatch(EXEMPT,h)) return "DIRECT";
-
-  // نمط شامل (اختياري)
   if (FORCE_ALL) return pickProxy();
-
-  // توجيه PUBG فقط عبر SOCKS5 الأردني
-  if (anyMatch(PUBG,h)) {
-    if (ENFORCE_SOCKS5_FOR_PUBG) {
-      // يضمن SOCKS5 حصراً حتى لو كانت قائمة HTTP موجودة
+  if (anyMatch(PUBG,h)){
+    if (ENFORCE_SOCKS5_FOR_PUBG){
       return pickProxyChain(JO_PROXIES_SOCKS);
     }
     return pickProxy();
   }
-
-  // غير ذلك: مباشر
   return "DIRECT";
 }
