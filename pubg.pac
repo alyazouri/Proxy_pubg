@@ -1,24 +1,20 @@
-// =================== Jordan-First PUBG (SOCKS5 + HTTP) ===================
-// يمرّر نطاقات PUBG/Tencent عبر بروكسي أردني: يفضّل SOCKS5، ثم HTTP/HTTPS.
-// PAC يؤثر على HTTP/HTTPS فقط؛ UDP لا يمر عبر البروكسي.
+// ===== Jordan-First PUBG (Ordered & Stable) =====
+// أولوية التوجيه: SOCKS5 أولاً → HTTP/HTTPS → DIRECT
+// ملاحظة: PAC يؤثر على HTTP/HTTPS فقط (UDP لا يمر عبر البروكسي).
 
-// ---------[ CONFIG ]---------
-var PROXY_IP = "91.106.109.12"; // عنوان بروكسيك/السيرفر
+// --------[ CONFIG ]--------
+var PROXY_IP = "91.106.109.12";   // IP البروكسي/السيرفر
 
-// منافذ SOCKS5 المفضّلة (جرّب من الأعلى للأسفل)
+// SOCKS5 أولاً (الأكثر ثباتاً لديك)
 var SOCKS_PORTS = [
-  1080, // SOCKS5 شائع
-  443,  // أحيانًا SOCKS5 على 443
-  8085  // بديل شائع
+  1080,  // المنفذ الافتراضي لـ SOCKS5
+  443    // بديل في حال تفعيل SOCKS5 على 443
 ];
 
-// منافذ HTTP/HTTPS Proxy (تعمل لـ HTTP و HTTPS عبر CONNECT)
+// HTTP/HTTPS Proxy كاحتياط (يعمل عبر CONNECT للـ HTTPS)
 var HTTP_PORTS = [
-  443,   // HTTPS شائع وأقل حجبًا
-  8085,  // بديل شائع
-  20000, 20001, 20002,
-  10010, 10011, 10012, 10013,
-  17000, 17001, 17002, 17500
+  443,   // أقل حجباً ويُعطي مساراً جيداً
+  8085   // بديل معروف
 ];
 
 // نطاقات PUBG/Tencent/CDN الأساسية
@@ -40,7 +36,7 @@ var PUBG_DOMAINS = [
   "*.vtcdn.com"
 ];
 
-// استثناءات الشبكة/الأسماء المحلية
+// استثناءات محلية
 function isLocalHost(host) {
   return isPlainHostName(host) ||
          shExpMatch(host, "*.local") ||
@@ -57,33 +53,28 @@ function isPUBG(host) {
   return false;
 }
 
-// يبني سلسلة بروكسي: SOCKS5 أولاً، ثم HTTP، ثم DIRECT
+// سلسلة التوجيه بالأولوية المذكورة
 function proxyChain() {
   var parts = [];
 
-  // SOCKS5
+  // 1) SOCKS5
   for (var i = 0; i < SOCKS_PORTS.length; i++) {
-    var sp = SOCKS_PORTS[i];
-    parts.push("SOCKS5 " + PROXY_IP + ":" + sp);
+    parts.push("SOCKS5 " + PROXY_IP + ":" + SOCKS_PORTS[i]);
   }
 
-  // HTTP/HTTPS (CONNECT)
+  // 2) HTTP/HTTPS
   for (var j = 0; j < HTTP_PORTS.length; j++) {
-    var hp = HTTP_PORTS[j];
-    parts.push("PROXY " + PROXY_IP + ":" + hp);
+    parts.push("PROXY " + PROXY_IP + ":" + HTTP_PORTS[j]);
   }
 
-  // أخيرًا مباشر
+  // 3) DIRECT (آخر خيار)
   parts.push("DIRECT");
+
   return parts.join("; ");
 }
 
 function FindProxyForURL(url, host) {
-  if (isLocalHost(host)) return "DIRECT"; // الشبكة المحلية دائمًا مباشر
-
-  // نطاقات PUBG/Tencent عبر السلسلة
-  if (isPUBG(host)) return proxyChain();
-
-  // باقي المواقع مباشرة لتقليل التأخير
+  if (isLocalHost(host)) return "DIRECT";
+  if (isPUBG(host))      return proxyChain();
   return "DIRECT";
 }
