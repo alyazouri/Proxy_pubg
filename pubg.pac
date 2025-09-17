@@ -1,15 +1,11 @@
-// ===== Jordan-First PUBG (SOCKS5 Only) =====
-// يمرّر نطاقات PUBG/Tencent عبر SOCKS5 فقط على المنافذ المختارة.
+// ===== Jordan-First PUBG (SOCKS5 Only, Minimal Ports) =====
+// يمرّر نطاقات PUBG/Tencent عبر SOCKS5 فقط باستخدام منفذين لتقليل الفشل.
 // PAC يؤثر على HTTP/HTTPS فقط؛ UDP لا يمر عبر البروكسي.
 
-// --------[ CONFIG ]--------
 var PROXY_IP = "91.106.109.12";   // IP البروكسي/السيرفر
 
-// منافذ SOCKS5 مأخوذة من قائمتك
-var SOCKS_PORTS = [
-  9050,    // SOCKS5 شائع جدًا
-  15038    // بديل ظهر في قائمتك
-];
+// منافذ SOCKS5 (اثنان فقط لتقليل التذبذب)
+var SOCKS_PORTS = [15040, 15042];
 
 // نطاقات PUBG/Tencent/CDN الأساسية
 var PUBG_DOMAINS = [
@@ -51,7 +47,7 @@ function proxyChain() {
   for (var i = 0; i < SOCKS_PORTS.length; i++) {
     parts.push("SOCKS5 " + PROXY_IP + ":" + SOCKS_PORTS[i]);
   }
-  parts.push("DIRECT"); // آخر خيار لو فشل SOCKS5
+  parts.push("DIRECT"); // لو فشل كل شيء
   return parts.join("; ");
 }
 
