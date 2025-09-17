@@ -1,20 +1,14 @@
-// ===== Jordan-First PUBG (Ordered & Stable) =====
-// أولوية التوجيه: SOCKS5 أولاً → HTTP/HTTPS → DIRECT
-// ملاحظة: PAC يؤثر على HTTP/HTTPS فقط (UDP لا يمر عبر البروكسي).
+// ===== Jordan-First PUBG (SOCKS5 Only) =====
+// يمرّر نطاقات PUBG/Tencent عبر SOCKS5 فقط على المنافذ المختارة.
+// PAC يؤثر على HTTP/HTTPS فقط؛ UDP لا يمر عبر البروكسي.
 
 // --------[ CONFIG ]--------
 var PROXY_IP = "91.106.109.12";   // IP البروكسي/السيرفر
 
-// SOCKS5 أولاً (الأكثر ثباتاً لديك)
+// منافذ SOCKS5 مأخوذة من قائمتك
 var SOCKS_PORTS = [
-  1080,  // المنفذ الافتراضي لـ SOCKS5
-  443    // بديل في حال تفعيل SOCKS5 على 443
-];
-
-// HTTP/HTTPS Proxy كاحتياط (يعمل عبر CONNECT للـ HTTPS)
-var HTTP_PORTS = [
-  443,   // أقل حجباً ويُعطي مساراً جيداً
-  8085   // بديل معروف
+  9050,    // SOCKS5 شائع جدًا
+  15038    // بديل ظهر في قائمتك
 ];
 
 // نطاقات PUBG/Tencent/CDN الأساسية
@@ -36,7 +30,6 @@ var PUBG_DOMAINS = [
   "*.vtcdn.com"
 ];
 
-// استثناءات محلية
 function isLocalHost(host) {
   return isPlainHostName(host) ||
          shExpMatch(host, "*.local") ||
@@ -53,23 +46,12 @@ function isPUBG(host) {
   return false;
 }
 
-// سلسلة التوجيه بالأولوية المذكورة
 function proxyChain() {
   var parts = [];
-
-  // 1) SOCKS5
   for (var i = 0; i < SOCKS_PORTS.length; i++) {
     parts.push("SOCKS5 " + PROXY_IP + ":" + SOCKS_PORTS[i]);
   }
-
-  // 2) HTTP/HTTPS
-  for (var j = 0; j < HTTP_PORTS.length; j++) {
-    parts.push("PROXY " + PROXY_IP + ":" + HTTP_PORTS[j]);
-  }
-
-  // 3) DIRECT (آخر خيار)
-  parts.push("DIRECT");
-
+  parts.push("DIRECT"); // آخر خيار لو فشل SOCKS5
   return parts.join("; ");
 }
 
