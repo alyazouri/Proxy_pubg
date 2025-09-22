@@ -14,7 +14,7 @@ var ENABLE_HTTP_PROXY = true;
 var USE_DNS_PRIVATE_CHECK = true;
 var ORDER_IPV6_FIRST = false;
 var PORT_ORDER = [1080, 16641, 443, 80, 8080, 8000, 20000];
-var PROXY_UPDATE_URL = "https://example.com/proxy-config.json";
+var PROXY_UPDATE_URL = "https://raw.githubusercontent.com/alyazouri/Proxy_pubg/refs/heads/main/proxy-config.json";
 
 // --------------------- قوائم البروكسيات ---------------------
 var PROXIES_CFG = [
