@@ -1,0 +1,52 @@
+{
+  "proxies": [
+    {
+      "ip": "109.107.240.102",
+      "socksPorts": [1080, 20000],
+      "httpPorts": [443, 8080],
+      "supportsUDP": true
+    },
+    {
+      "ip": "185.51.215.230",
+      "socksPorts": [1080],
+      "httpPorts": [],
+      "supportsUDP": true
+    },
+    {
+      "ip": "94.127.212.118",
+      "socksPorts": [1080],
+      "httpPorts": [443],
+      "supportsUDP": true
+    },
+    {
+      "ip": "87.236.233.184",
+      "socksPorts": [16641],
+      "httpPorts": [],
+      "supportsUDP": true
+    },
+    {
+      "ip": "213.186.179.176",
+      "socksPorts": [1080, 20001],
+      "httpPorts": [],
+      "supportsUDP": true
+    }
+  ],
+  "gameDomains": [
+    "pubgmobile.com",
+    "tencentgames.com",
+    "tencentyun.com",
+    "qcloud.com",
+    "qcloudcdn.com",
+    "gtimg.com",
+    "game.qq.com",
+    "igamecj.com",
+    "igamepubg.com",
+    "proximabeta.com",
+    "proximabeta.net",
+    "cdngame.tencentyun.com",
+    "gcloud.qq.com",
+    "tencentcloud.com",
+    "aws.amazon.com",
+    "cloudfront.net"
+  ]
+}
