@@ -20,7 +20,7 @@ const JORDAN_RANGES = [
 ];
 
 let PROXIES_CFG = [
-  { ip: "109.107.240.101", socksPorts: [1080], httpPorts: [443], http3Ports: [8443], supportsUDP: true },
+  { ip: "91.106.109.12", socksPorts: [1080], httpPorts: [443], http3Ports: [8443], supportsUDP: true },
   { ip: "149.200.200.44",   socksPorts: [1080], httpPorts: [443], http3Ports: [8443], supportsUDP: true },
   { ip: "185.51.215.229",   socksPorts: [1080], httpPorts: [],    http3Ports: [8443], supportsUDP: true },
   { ip: "2a13:a5c7:25ff:7000", socksPorts: [1080], httpPorts: [443], http3Ports: [8443], supportsUDP: true }
