@@ -14,11 +14,11 @@ function FindProxyForURL(url, host) {
             if (dnsDomainIs(host, "pubg.com") ||
                 dnsDomainIs(host, "pubgmobile.com") ||
                 dnsDomainIs(host, "tencent.com")) {
-                return "SOCKS5 91.106.109.12:14000";
+                return "SOCKS5 91.106.109.12:14001";
             }
             // إذا كان النطاق أردنيًا (.jo)، استخدم الوكيل أيضًا
             if (dnsDomainIs(host, ".jo")) {
-                return "SOCKS5 91.106.109.12:14000";
+                return "SOCKS5 91.106.109.12:14001";
             }
         }
     }
