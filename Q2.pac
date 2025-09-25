@@ -14,11 +14,11 @@ function FindProxyForURL(url, host) {
             if (dnsDomainIs(host, "pubg.com") ||
                 dnsDomainIs(host, "pubgmobile.com") ||
                 dnsDomainIs(host, "tencent.com")) {
-                return "PROXY 91.106.109.12:8081";
+                return "PROXY 91.106.109.12:20000";
             }
             // إذا كان النطاق أردنيًا (.jo)، استخدم الوكيل أيضًا
             if (dnsDomainIs(host, ".jo")) {
-                return "PROXY 91.106.109.12:8081";
+                return "PROXY 91.106.109.12:20000";
             }
         }
     }
