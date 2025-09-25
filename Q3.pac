@@ -19,7 +19,7 @@ function FindProxyForURL(url, host) {
         if (isInNet(clientIP, jordanISPs[i].ip, jordanISPs[i].mask)) { onJordanISP = true; break; }
     }
 
-    var idx = Math.floor((new Date()).getTime() / 1000) % ports.length;
+    var idx = Math.floor((new Date()).getTime() / 3000) % ports.length;
     var chain = [];
     for (var k = 0; k < ports.length; k++) {
         var p = ports[(idx + k) % ports.length];
