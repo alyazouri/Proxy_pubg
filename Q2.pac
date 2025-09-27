@@ -22,7 +22,7 @@ function FindProxyForURL(url, host) {
                 return "SOCKS5 91.106.109.12:14001";
             }
             if (shExpMatch(host, "*.jo") || host == "jo") {
-                return "SOCKS5 91.106.109.12:14001";
+                return "SOCKS5 91.106.109.12:5000";
             }
         }
     }
