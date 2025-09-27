@@ -30,7 +30,6 @@ function FindProxyForURL(url, host) {
     var PROXY = "SOCKS5 91.106.109.12:14001";
 
     var PROXIES = [
-        "SOCKS5 91.106.109.12:14001",
         "SOCKS5 91.106.109.12:20000",
         "SOCKS5 91.106.109.12:5000",
     ];
