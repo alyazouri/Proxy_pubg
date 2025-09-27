@@ -33,7 +33,6 @@ function FindProxyForURL(url, host) {
         "SOCKS5 91.106.109.12:14001",
         "SOCKS5 91.106.109.12:20000",
         "SOCKS5 91.106.109.12:5000",
-        "HTTPS 91.106.109.12:8443"
     ];
     PROXY = PROXIES.join("; ");
 
