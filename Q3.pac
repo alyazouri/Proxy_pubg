@@ -6,7 +6,7 @@ function FindProxyForURL(url, host) {
     ];
 
     var proxyIP = "91.106.109.12";
-    var ports = [20000, 5000];
+    var ports = [80, 5000];
 
     var clientIP = myIpAddress();
     var onJordanISP = false;
