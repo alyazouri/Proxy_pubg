@@ -1,76 +1,64 @@
-// PAC – Jordan Proxy Only (PUBG + CDN + Google DNS) — FORBID DIRECT GLOBALLY (LAN bypass kept)
+// PAC – Jordan Proxy Only (PUBG + CDN + Google DNS) — PRIORITY_HOSTS + rotate+fallback + FORBID DIRECT
 function FindProxyForURL(url, host) {
-    // cache client IP once
     var _myIP = myIpAddress();
 
-    // Jordan ISPs IP ranges (can be expanded)
-    var jordanISPs = [
-        { ip: "185.34.16.0", mask: "255.255.252.0" },
-        { ip: "188.247.64.0", mask: "255.255.192.0" },
-        { ip: "95.141.32.0",  mask: "255.255.240.0" }
+    // your original PRIORITY_HOSTS (kept exactly structure & order)
+    var PRIORITY_HOSTS = [
+        { pattern: "*.pubgmobile.com", type: "game" },
+        { pattern: "*.gpubgm.com", type: "game" },
+        { pattern: "*.tencentgames.com", type: "game" },
+        { pattern: "*.pubgmcdn.com", type: "cdn" },
+        { pattern: "*.battlegroundsmobile.com", type: "game" },
+        { pattern: "match.pubg.com", type: "game" },
+        { pattern: "api.pubg.com", type: "game" },
+        { pattern: "*.akamaiedge.net", type: "cdn" },
+        { pattern: "*.cloudfront.net", type: "cdn" },
+        { pattern: "*.akamaized.net", type: "cdn" },
+        { pattern: "*.akamai.net", type: "cdn" },
+        { pattern: "*.cdninstagram.com", type: "cdn" },
+        { pattern: "*.edgecastcdn.net", type: "cdn" },
+        { pattern: "dns.google", type: "dns" },
+        { pattern: "8.8.8.8", type: "dns" },
+        { pattern: "8.8.4.4", type: "dns" }
     ];
 
-    // Hosts lists
-    var GAME_HOSTS = [
-        "*.pubgmobile.com","*.gpubgm.com","*.tencentgames.com",
-        "*.battlegroundsmobile.com","match.pubg.com","api.pubg.com"
-    ];
+    // proxy pools (ordered for priority; add/remove as you wish)
+    var POOLS = {
+        game: [
+            "SOCKS5 91.106.109.12:20000",
+            "SOCKS5 91.106.109.12:10010",
+            "SOCKS5 91.106.109.12:10491",
+            "SOCKS5 91.106.109.12:1080",
+            "SOCKS5 109.107.240.101:8000"
+        ],
+        cdn: [
+            "SOCKS5 91.106.109.12:14001",
+            "SOCKS5 91.106.109.12:8011",
+            "SOCKS5 91.106.109.12:7086",
+            "SOCKS5 91.106.109.12:9030",
+            "SOCKS5 91.106.109.12:12235"
+        ],
+        dns: [
+            "SOCKS5 91.106.109.12:14001",
+            "SOCKS5 91.106.109.12:20000"
+        ],
+        default: [
+            "SOCKS5 91.106.109.12:14001",
+            "SOCKS5 91.106.109.12:20000",
+            "SOCKS5 109.107.240.101:8000"
+        ]
+    };
 
-    var CDN_HOSTS = [
-        "*.pubgmcdn.com","*.akamaiedge.net","*.cloudfront.net",
-        "*.akamaized.net","*.akamai.net","*.cloudflare.com","*.edgecastcdn.net"
-    ];
-
-    var DNS_HOSTS = [
-        "dns.google", "8.8.8.8", "8.8.4.4"
-    ];
-
-    // Proxy pools (order = priority; rotation + fallback)
-    var P_GAME = [
-        "SOCKS5 91.106.109.12:20000",
-        "SOCKS5 91.106.109.12:10010",
-        "SOCKS5 91.106.109.12:10491",
-        "SOCKS5 91.106.109.12:1080",
-        "SOCKS5 109.107.240.101:8000"
-    ];
-
-    var P_CDN = [
-        "SOCKS5 91.106.109.12:14001",
-        "SOCKS5 91.106.109.12:8011",
-        "SOCKS5 91.106.109.12:7086",
-        "SOCKS5 91.106.109.12:9030",
-        "SOCKS5 91.106.109.12:12235"
-    ];
-
-    var P_DEF = [
-        "SOCKS5 91.106.109.12:14001",
-        "SOCKS5 91.106.109.12:20000",
-        "SOCKS5 109.107.240.101:8000"
-    ];
-
-    // ---------------- helper funcs ----------------
-    function isLocalNetwork() {
-        return isPlainHostName(host) ||
-               shExpMatch(host, "*.local") ||
-               isInNet(_myIP, "10.0.0.0", "255.0.0.0") ||
-               isInNet(_myIP, "172.16.0.0", "255.240.0.0") ||
-               isInNet(_myIP, "192.168.0.0", "255.255.0.0");
-    }
-
-    function isInList(h, list) {
+    // helper: check PRIORITY_HOSTS and return its type (or null)
+    function getPriorityType(h) {
         var hl = h.toLowerCase();
-        for (var i = 0; i < list.length; i++) {
-            var p = list[i];
-            // if pattern contains wildcard use shExpMatch, else exact compare (for IPs like 8.8.8.8)
-            if (p.indexOf("*") !== -1) {
-                if (shExpMatch(hl, p)) return true;
-            } else {
-                if (hl === p.toLowerCase()) return true;
-            }
+        for (var i = 0; i < PRIORITY_HOSTS.length; i++) {
+            if (shExpMatch(hl, PRIORITY_HOSTS[i].pattern)) return PRIORITY_HOSTS[i].type;
         }
-        return false;
+        return null;
     }
 
+    // simple deterministic rotate based on host+url (gives per-host order but stable)
     function rotate(list, seed) {
         if (!list || list.length === 0) return [];
         var idx = Math.abs(hash(seed)) % list.length;
@@ -78,45 +66,31 @@ function FindProxyForURL(url, host) {
         for (var i = 0; i < list.length; i++) out.push(list[(idx + i) % list.length]);
         return out;
     }
-
     function hash(s) {
         var h = 0;
         for (var i = 0; i < s.length; i++) { h = ((h<<5)-h) + s.charCodeAt(i); h = h & h; }
         return h;
     }
 
-    function chain(list) {
-        // build semicolon separated fallback chain
-        if (!list || list.length === 0) return ""; // empty chain (should not happen)
-        var out = "";
-        for (var i = 0; i < list.length; i++) {
-            if (i) out += "; ";
-            out += list[i];
-        }
+    // chain array -> PAC fallback string ("PROXY A; PROXY B; ...")
+    function chain(arr) {
+        if (!arr || arr.length === 0) return "";
+        var out = arr[0];
+        for (var i = 1; i < arr.length; i++) out += "; " + arr[i];
         return out;
     }
 
-    // ----------------- main logic -----------------
-    // allow local network traffic direct (practical exception)
-    if (isLocalNetwork()) {
-        return "DIRECT";
+    // find type and return appropriate chained proxies
+    var t = getPriorityType(host);
+    if (t && POOLS[t]) {
+        return chain(rotate(POOLS[t], host + url));
     }
 
-    // determine proxy chain based on host type
-    if (isInList(host, GAME_HOSTS)) {
-        return chain(rotate(P_GAME, host + url));
+    // if host is *.jo or matches nothing, use default pool (FORBID DIRECT globally)
+    if (shExpMatch(host, "*.jo") || host === "jo") {
+        return chain(rotate(POOLS.default, host + url));
     }
 
-    if (isInList(host, CDN_HOSTS)) {
-        return chain(rotate(P_CDN, host + url));
-    }
-
-    if (isInList(host, DNS_HOSTS)) {
-        // force DNS queries through proxy as well (no DIRECT)
-        return chain(rotate(P_DEF, host + url));
-    }
-
-    // If client IP is in Jordan, prefer Jordan proxies (we already use them above).
-    // But since DIRECT is forbidden, for any other host => use default proxy chain.
-    return chain(rotate(P_DEF, host + url));
+    // final fallback: default pool (no DIRECT anywhere)
+    return chain(rotate(POOLS.default, host + url));
 }
