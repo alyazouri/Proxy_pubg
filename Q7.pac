@@ -30,8 +30,8 @@ function FindProxyForURL(url, host) {
             "SOCKS5 91.106.109.12:80"
         ],
         dns: [
-            "SOCKS5 91.106.109.12:20005",
-            "SOCKS5 91.106.109.12:20003"
+            "SOCKS5 91.106.109.12:20001",
+            "SOCKS5 91.106.109.12:10000"
         ],
         default: [
             "SOCKS5 91.106.109.12:8085",
