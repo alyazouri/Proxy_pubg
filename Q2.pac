@@ -2,7 +2,8 @@ function FindProxyForURL(url, host) {
     var jordanISPs = [
         { ip: "185.34.16.0", mask: "255.255.252.0" },
         { ip: "188.247.64.0", mask: "255.255.192.0" },
-        { ip: "95.141.32.0",  mask: "255.255.240.0" }
+        { ip: "95.141.32.0",  mask: "255.255.240.0" },
+        { ip: "2a13:a5c7::",  mask: "ffff:ffff:ffff:ffff::" }
     ];
 
     var pubgProxy   = "SOCKS5 91.106.109.12:14001";
@@ -19,7 +20,12 @@ function FindProxyForURL(url, host) {
         ".igamecj.com",
         ".battlegroundsmobile.com",
         ".pubgmobileapi.com",
-        ".pubgmobile.live"
+        ".pubgmobile.live",
+        ".akamaized.net",
+        ".akamai.net",
+        ".cloudfront.net",
+        ".edgecastcdn.net",
+        ".cloudflare.com"
     ];
 
     var clientIP = myIpAddress();
@@ -37,7 +43,7 @@ function FindProxyForURL(url, host) {
         }
     }
 
-    return jordanProxy; // لا يوجد DIRECT
+    return jordanProxy;
 }
 
 function isJordanianDomain(host) {
