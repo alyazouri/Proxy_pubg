@@ -16,10 +16,7 @@ function FindProxyForURL(url, host) {
         { pattern: "*.akamaized.net", type: "cdn" },
         { pattern: "*.akamai.net", type: "cdn" },
         { pattern: "*.cdninstagram.com", type: "cdn" },
-        { pattern: "*.edgecastcdn.net", type: "cdn" },
-        { pattern: "dns.google", type: "dns" },
-        { pattern: "8.8.8.8", type: "dns" },
-        { pattern: "8.8.4.4", type: "dns" }
+        { pattern: "*.edgecastcdn.net", type: "cdn" }
     ];
 
     // proxy pools (ordered for priority; add/remove as you wish)
