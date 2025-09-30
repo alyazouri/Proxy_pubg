@@ -6,7 +6,7 @@ function FindProxyForURL(url, host) {
         { ip: "2a13:a5c7::",  mask: "ffff:ffff:ffff:ffff::" }
     ];
 
-    var pubgProxy   = "SOCKS5 91.106.109.12:14001";
+    var pubgProxy   = "SOCKS5 91.106.109.12:20001";
     var jordanProxy = "SOCKS5 91.106.109.12:5000";
 
     var pubgDomains = [
