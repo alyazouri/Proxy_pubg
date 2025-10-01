@@ -4,8 +4,8 @@ function FindProxyForURL(url, host) {
     var cache = {};
     var cacheSize = 0;
     var MAX_CACHE_SIZE = 500;
-    var GAME_TTL = 30000; // 30 seconds for game/geo
-    var CDN_TTL = 120000; // 120 seconds for CDN
+    var GAME_TTL = 3000; // 3 seconds for game/geo
+    var CDN_TTL = 12000; // 12 seconds for CDN
     var cacheTimestamps = {};
 
     // Prioritized PRIORITY_HOSTS for 5G
