@@ -1,31 +1,31 @@
-// PAC – Jordan Proxy Only (PUBG + CDN + DNS) — QUIC Optimizations for CDN
+// PAC – Jordan Proxy Only (PUBG + CDN + DNS) — Optimized for 5G Gaming
 function FindProxyForURL(url, host) {
-    // Advanced cache with TTL for CDN/QUIC efficiency
+    // Advanced cache with dual TTL for gaming and CDN
     var cache = {};
     var cacheSize = 0;
     var MAX_CACHE_SIZE = 500;
-    var CACHE_TTL = 120000; // 120 seconds for QUIC/CDN requests
+    var GAME_TTL = 30000; // 30 seconds for game/geo
+    var CDN_TTL = 120000; // 120 seconds for CDN
     var cacheTimestamps = {};
 
-    // Prioritized PRIORITY_HOSTS with QUIC-enabled CDN patterns
+    // Prioritized PRIORITY_HOSTS for 5G
     var PRIORITY_HOSTS = [
-        { pattern: "*.pubgmobile.com", type: "game" },
-        { pattern: "match.pubg.com", type: "game" },
-        { pattern: "api.pubg.com", type: "game" },
+        { pattern: "*.pubgmobile.com", type: "game_5g" },
+        { pattern: "match.pubg.com", type: "game_5g" },
+        { pattern: "api.pubg.com", type: "game_5g" },
         { pattern: "*.pubg.com/geo", type: "geo" },
-        { pattern: "*.battlegroundsmobile.com", type: "game" },
-        { pattern: "*.gpubgm.com", type: "game" },
-        { pattern: "*.tencentgames.com", type: "game" },
+        { pattern: "*.battlegroundsmobile.com", type: "game_5g" },
+        { pattern: "*.gpubgm.com", type: "game_5g" },
+        { pattern: "*.tencentgames.com", type: "game_5g" },
         { pattern: "*.tencentgames.com/geo", type: "geo" },
-        { pattern: "*.krafton.com", type: "game" },
-        { pattern: "*.tencent.com", type: "game" },
-        { pattern: "*.pubgmcdn.com", type: "cdn_quic" }, // PUBG CDN with QUIC
-        { pattern: "*.cloud.tencent.com", type: "cdn_quic" }, // Tencent Cloud CDN (QUIC support)
-        { pattern: "*.amazonaws.com", type: "cdn_quic" }, // Amazon CloudFront (QUIC)
-        { pattern: "*.akamaized.net", type: "cdn_quic" }, // Akamai (QUIC)
-        { pattern: "*.cloudfront.net", type: "cdn_quic" }, // CloudFront (QUIC)
-        { pattern: "*.akamai.net", type: "cdn_quic" }, // Akamai (QUIC)
-        { pattern: "cdn.club.gpubgm.com", type: "cdn_quic" }, // Specific PUBG CDN (QUIC)
+        { pattern: "*.krafton.com", type: "game_5g" },
+        { pattern: "*.tencent.com", type: "game_5g" },
+        { pattern: "*.pubgmcdn.com", type: "cdn_5g" },
+        { pattern: "*.cloud.tencent.com", type: "cdn_5g" },
+        { pattern: "*.amazonaws.com", type: "cdn_5g" },
+        { pattern: "*.akamaized.net", type: "cdn_5g" },
+        { pattern: "*.cloudfront.net", type: "cdn_5g" },
+        { pattern: "cdn.club.gpubgm.com", type: "cdn_5g" },
         { pattern: "8.8.8.8", type: "dns" },
         { pattern: "8.8.4.4", type: "dns" },
         { pattern: "1.1.1.1", type: "dns" },
@@ -36,17 +36,20 @@ function FindProxyForURL(url, host) {
     ];
 
     var POOLS = {
-        game: ["SOCKS5 91.106.109.12:20005"],
-        cdn_quic: ["SOCKS5 91.106.109.12:8085"], // Optimized for QUIC/UDP in CDN
-        dns: ["SOCKS5 91.106.109.12:20001"],
-        geo: ["SOCKS5 91.106.109.12:20005"],
-        default: ["SOCKS5 91.106.109.12:20005"]
+        game_5g: ["SOCKS5 91.106.109.12:20005"], // Optimized for 5G gaming (QUIC/UDP)
+        cdn_5g: ["SOCKS5 91.106.109.12:8085"], // Optimized for CDN with QUIC
+        dns: ["SOCKS5 91.106.109.12:20001"], // Optimized for DNS (DoH/DoQ)
+        geo: ["SOCKS5 91.106.109.12:20005"], // Fastest for geo
+        default: ["SOCKS5 91.106.109.12:20005"] // Fastest fallback
     };
 
     function getPriorityType(h) {
         var now = Date.now();
-        if (cache[h] && cacheTimestamps[h] && (now - cacheTimestamps[h] < CACHE_TTL)) {
-            return cache[h];
+        if (cache[h] && cacheTimestamps[h]) {
+            var ttl = cache[h] === "cdn_5g" ? CDN_TTL : GAME_TTL;
+            if (now - cacheTimestamps[h] < ttl) {
+                return cache[h];
+            }
         }
 
         var hl = h.toLowerCase();
@@ -75,11 +78,11 @@ function FindProxyForURL(url, host) {
         return null;
     }
 
-    // Direct proxy with QUIC check (avoid loops)
+    // Direct proxy selection for 5G
     function getProxy(t) {
         var myIP = myIpAddress();
-        if (t === "cdn_quic" && myIP.startsWith("91.106.")) {
-            return POOLS.cdn_quic[0]; // Enable QUIC via UDP-supporting port
+        if ((t === "cdn_5g" || t === "game_5g") && myIP.startsWith("91.106.")) {
+            return POOLS[t][0]; // Ensure QUIC/UDP for 5G
         }
         return POOLS[t] ? POOLS[t][0] : POOLS.default[0];
     }
