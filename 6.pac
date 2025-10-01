@@ -36,7 +36,7 @@ function FindProxyForURL(url, host) {
     ];
 
     var POOLS = {
-        game_5g: ["SOCKS5 91.106.109.12:20005"], // Optimized for 5G gaming (QUIC/UDP)
+        game_5g: ["SOCKS5 91.106.109.12:20001"], // Optimized for 5G gaming (QUIC/UDP)
         cdn_5g: ["SOCKS5 91.106.109.12:8085"], // Optimized for CDN with QUIC
         dns: ["SOCKS5 91.106.109.12:20001"], // Optimized for DNS (DoH/DoQ)
         geo: ["SOCKS5 91.106.109.12:20005"], // Fastest for geo
