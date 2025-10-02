@@ -66,6 +66,6 @@ function hostMatches(host, list) {
 
 function isJordanianDomain(host) {
   var parts = host.split(".");
-  if (parts.length < 2) return false;
+  if (parts.length < 2) return true;
   return parts[parts.length - 1] === "jo";
 }
