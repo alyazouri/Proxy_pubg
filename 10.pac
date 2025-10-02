@@ -18,8 +18,13 @@ function isPlainIP(host) {
   return (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || /^[0-9a-fA-F:]+$/.test(host));
 }
 
+function tld(host) {
+  var p = (host || "").split(".").pop();
+  return p ? p.toLowerCase() : "";
+}
+
 function hostInList(host, list) {
-  var h = host.toLowerCase();
+  var h = (host || "").toLowerCase();
   for (var i = 0; i < list.length; i++) {
     var d = list[i];
     if (h === d || shExpMatch(host, "*." + d)) return true;
@@ -27,51 +32,40 @@ function hostInList(host, list) {
   return false;
 }
 
-function hasKeyword(s, kw) {
-  var t = (s || "").toLowerCase();
-  for (var i = 0; i < kw.length; i++) {
-    if (t.indexOf(kw[i]) !== -1) return true;
-  }
-  return false;
-}
-
 var GAME_DOMAINS = [
-  "pubg.com", "pubgmobile.com", "gpubgm.com", "igamecj.com",
-  "battlegroundsmobile.com", "tencent.com", "tencentgames.com",
-  "tencentcloud.com", "qcloud.com", "tencentyun.com", "gtimg.com",
-  "proximabeta.com", "proximabeta.net", "gameloop.com", "qcloudcdn.com",
-  "cdn-ota.qq.com", "cdngame.tencentyun.com", "pubgmcdn.com",
-  "pubgmobileapi.com", "pubgmobile.live"
+  "pubg.com","pubgmobile.com","gpubgm.com","igamecj.com",
+  "battlegroundsmobile.com","tencent.com","tencentgames.com",
+  "tencentcloud.com","qcloud.com","tencentyun.com","gtimg.com",
+  "proximabeta.com","proximabeta.net","gameloop.com","qcloudcdn.com",
+  "cdn-ota.qq.com","cdngame.tencentyun.com","pubgmcdn.com",
+  "pubgmobileapi.com","pubgmobile.live"
 ];
 
-var CDN_DOMAINS = [
-  "akamaized.net", "akamai.net", "akamaiedge.net",
-  "cloudfront.net", "edgecastcdn.net", "cloudflare.com"
+var JO_V4 = [
+  { ip:"212.34.0.0",  mask:"255.255.224.0" },
+  { ip:"213.139.32.0", mask:"255.255.224.0" },
+  { ip:"46.185.128.0", mask:"255.255.128.0" },
+  { ip:"46.32.96.0",   mask:"255.255.224.0" },
+  { ip:"185.12.244.0", mask:"255.255.252.0" },
+  { ip:"185.14.132.0", mask:"255.255.252.0" },
+  { ip:"91.106.109.0", mask:"255.255.255.0" }
 ];
 
-var KW_MATCH = [
-  "match", "room", "gpmatch", "start", "battle", "ranked",
-  "arena", "erangel", "miramar", "vikendi", "sanhok", "livik", "payload"
-];
-
-var KW_LOBBY = [
-  "login", "auth", "api", "cdn", "store", "profile", "social",
-  "party", "squad", "team", "inventory", "season", "event",
-  "asset", "download", "patch"
+var JO_V6 = [
+  { ip:"2a13:a5c7::", mask:"ffff:ffff:ffff:ffff::" }
 ];
 
 var LOBBY_SOCKS   = range(5000, 5015);
 var MATCH_SOCKS   = range(20001, 20025);
-var HTTP_FALLBACK = [8080, 8085, 3128];
+var HTTP_FALLBACK = [8080];
 
-var PROXIES_V6 = { ip: "2a13:a5c7:25ff:7000" };
-var PROXIES_V4 = { ip: "91.106.109.12" };
+var PROXIES_V6 = { ip:"2a13:a5c7:25ff:7000" };
+var PROXIES_V4 = { ip:"91.106.109.12" };
 
 var ROTATE_INTERVAL  = 5000;
 var FAST_PORT_CACHE  = {};
 var FAST_PORT_TTL_MS = 15000;
 var WINDOW_SIZE      = 4;
-var FORCE_ALL        = true;
 
 function timedOrder(host, ports) {
   var n = ports.length;
@@ -85,17 +79,17 @@ function timedOrder(host, ports) {
 }
 
 function pickFast(host, ports) {
-  var r = FAST_PORT_CACHE[host];
-  var t = (new Date()).getTime();
-  if (r && (t - r.ts) < FAST_PORT_TTL_MS) return r.p;
+  var rec = FAST_PORT_CACHE[host];
+  var t   = (new Date()).getTime();
+  if (rec && (t - rec.ts) < FAST_PORT_TTL_MS) return rec.p;
   var ord = timedOrder(host, ports);
   var p   = ord.length ? ord[0] : (ports.length ? ports[0] : 1080);
-  FAST_PORT_CACHE[host] = { p: p, ts: t };
+  FAST_PORT_CACHE[host] = { p:p, ts:t };
   return p;
 }
 
 function chainFor(ip, ports, host) {
-  var addr = isIPv6Literal(ip) ? "[" + ip + "]" : ip;
+  var addr = isIPv6Literal(ip) ? ("[" + ip + "]") : ip;
   var ord  = timedOrder(host, ports);
   var fast = pickFast(host, ports);
   var seq  = (ord.length && ord[0] !== fast)
@@ -110,26 +104,54 @@ function chainFor(ip, ports, host) {
   return out.join("; ");
 }
 
-function classify(host, url) {
-  if (
-    hostInList(host, GAME_DOMAINS) ||
-    hostInList(host, CDN_DOMAINS)  ||
-    hasKeyword(url, KW_MATCH)      ||
-    hasKeyword(host, KW_MATCH)
-  ) return "match";
+function clientInJordan() {
+  var ip = myIpAddress();
+  if (!ip) return false;
+  for (var i = 0; i < JO_V4.length; i++) {
+    if (isInNet(ip, JO_V4[i].ip, JO_V4[i].mask)) return true;
+  }
+  try {
+    for (var j = 0; j < JO_V6.length; j++) {
+      if (isInNet(ip, JO_V6[j].ip, JO_V6[j].mask)) return true;
+    }
+  } catch (e) {}
+  return false;
+}
 
-  if (
-    hasKeyword(url, KW_LOBBY) ||
-    hasKeyword(host, KW_LOBBY)
-  ) return "lobby";
+function resolvesToJordan(host) {
+  try {
+    var r = dnsResolve(host);
+    if (!r) return false;
+    for (var i = 0; i < JO_V4.length; i++) {
+      if (isInNet(r, JO_V4[i].ip, JO_V4[i].mask)) return true;
+    }
+    try {
+      for (var j = 0; j < JO_V6.length; j++) {
+        if (isInNet(r, JO_V6[j].ip, JO_V6[j].mask)) return true;
+      }
+    } catch (e) {}
+  } catch (e) {}
+  return false;
+}
 
-  return "lobby";
+function jordanOnly(host) {
+  if (!clientInJordan()) return false;
+  if (!host) return false;
+  if (tld(host) === "jo") return true;
+  if (resolvesToJordan(host)) return true;
+  if (hostInList(host, GAME_DOMAINS) && resolvesToJordan(host)) return true;
+  return false;
 }
 
 function FindProxyForURL(url, host) {
-  var cls   = classify(host, url);
-  var ports = (cls === "match") ? MATCH_SOCKS : LOBBY_SOCKS;
-  var v6    = chainFor(PROXIES_V6.ip, ports, host);
-  var v4    = chainFor(PROXIES_V4.ip, ports, host);
-  return v6 + "; " + v4;
+  var isMatch = hostInList(host, GAME_DOMAINS);
+  var ports   = isMatch ? MATCH_SOCKS : LOBBY_SOCKS;
+
+  if (jordanOnly(host)) {
+    var v6 = chainFor(PROXIES_V6.ip, ports, host);
+    var v4 = chainFor(PROXIES_V4.ip, ports, host);
+    return v6 + "; " + v4;
+  }
+
+  return chainFor(PROXIES_V4.ip, LOBBY_SOCKS, host);
 }
