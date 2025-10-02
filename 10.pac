@@ -35,51 +35,43 @@ function hasKeyword(s, kw) {
   return false;
 }
 
-function tld(host) {
-  var p = host.split(".").pop();
-  return p ? p.toLowerCase() : "";
-}
-
-var JORDAN_ISPS = [
-  { ip: "185.34.16.0", mask: "255.255.252.0" },
-  { ip: "188.247.64.0", mask: "255.255.192.0" },
-  { ip: "95.141.32.0",  mask: "255.255.240.0" }
-];
-
-var JORDAN_V6 = { ip: "2a13:a5c7::", mask: "ffff:ffff:ffff:ffff::" };
-
 var GAME_DOMAINS = [
-  "pubg.com","pubgmobile.com","gpubgm.com","igamecj.com","battlegroundsmobile.com",
-  "tencent.com","tencentgames.com","tencentcloud.com","qcloud.com","tencentyun.com",
-  "gtimg.com","proximabeta.com","proximabeta.net","gameloop.com","qcloudcdn.com",
-  "cdn-ota.qq.com","cdngame.tencentyun.com","pubgmcdn.com","pubgmobileapi.com","pubgmobile.live"
+  "pubg.com", "pubgmobile.com", "gpubgm.com", "igamecj.com",
+  "battlegroundsmobile.com", "tencent.com", "tencentgames.com",
+  "tencentcloud.com", "qcloud.com", "tencentyun.com", "gtimg.com",
+  "proximabeta.com", "proximabeta.net", "gameloop.com", "qcloudcdn.com",
+  "cdn-ota.qq.com", "cdngame.tencentyun.com", "pubgmcdn.com",
+  "pubgmobileapi.com", "pubgmobile.live"
 ];
 
 var CDN_DOMAINS = [
-  "akamaized.net","akamai.net","akamaiedge.net","cloudfront.net","edgecastcdn.net","cloudflare.com"
+  "akamaized.net", "akamai.net", "akamaiedge.net",
+  "cloudfront.net", "edgecastcdn.net", "cloudflare.com"
 ];
 
 var KW_MATCH = [
-  "match","room","gpmatch","start","battle","ranked","arena","erangel",
-  "miramar","vikendi","sanhok","livik","payload"
+  "match", "room", "gpmatch", "start", "battle", "ranked",
+  "arena", "erangel", "miramar", "vikendi", "sanhok", "livik", "payload"
 ];
 
 var KW_LOBBY = [
-  "login","auth","api","cdn","store","profile","social","party","squad",
-  "team","inventory","season","event","asset","download","patch"
+  "login", "auth", "api", "cdn", "store", "profile", "social",
+  "party", "squad", "team", "inventory", "season", "event",
+  "asset", "download", "patch"
 ];
 
-var LOBBY_SOCKS   = range(5000, 5005);
-var MATCH_SOCKS   = range(20001, 20005);
+var LOBBY_SOCKS   = range(5000, 5015);
+var MATCH_SOCKS   = range(20001, 20025);
 var HTTP_FALLBACK = [8080, 8085, 3128];
 
 var PROXIES_V6 = { ip: "2a13:a5c7:25ff:7000" };
 var PROXIES_V4 = { ip: "91.106.109.12" };
 
-var ROTATE_INTERVAL   = 5000;
-var FAST_PORT_CACHE   = {};
-var FAST_PORT_TTL_MS  = 15000;
-var WINDOW_SIZE       = 4;
+var ROTATE_INTERVAL  = 5000;
+var FAST_PORT_CACHE  = {};
+var FAST_PORT_TTL_MS = 15000;
+var WINDOW_SIZE      = 4;
+var FORCE_ALL        = true;
 
 function timedOrder(host, ports) {
   var n = ports.length;
@@ -107,8 +99,8 @@ function chainFor(ip, ports, host) {
   var ord  = timedOrder(host, ports);
   var fast = pickFast(host, ports);
   var seq  = (ord.length && ord[0] !== fast)
-             ? [fast].concat(ord.filter(function (x) { return x !== fast; }))
-             : ord.slice(0);
+           ? [fast].concat(ord.filter(function (x) { return x !== fast; }))
+           : ord.slice(0);
   var out  = [];
   for (var i = 0; i < seq.length; i++) {
     out.push("SOCKS5 " + addr + ":" + seq[i]);
@@ -118,42 +110,26 @@ function chainFor(ip, ports, host) {
   return out.join("; ");
 }
 
-function jordanClient() {
-  var ip = myIpAddress();
-  for (var i = 0; i < JORDAN_ISPS.length; i++) {
-    if (isInNet(ip, JORDAN_ISPS[i].ip, JORDAN_ISPS[i].mask)) return true;
-  }
-  try { if (isInNet(ip, JORDAN_V6.ip, JORDAN_V6.mask)) return true; } catch (e) {}
-  return false;
-}
-
-function isJordanDomain(host) {
-  return tld(host) === "jo";
-}
-
 function classify(host, url) {
-  if (hostInList(host, CDN_DOMAINS) || isJordanDomain(host) || hasKeyword(url, KW_LOBBY) || hasKeyword(host, KW_LOBBY)) return "lobby";
-  if (hostInList(host, GAME_DOMAINS) || hasKeyword(url, KW_MATCH) || hasKeyword(host, KW_MATCH)) return "match";
-  return "match";
+  if (
+    hostInList(host, GAME_DOMAINS) ||
+    hostInList(host, CDN_DOMAINS)  ||
+    hasKeyword(url, KW_MATCH)      ||
+    hasKeyword(host, KW_MATCH)
+  ) return "match";
+
+  if (
+    hasKeyword(url, KW_LOBBY) ||
+    hasKeyword(host, KW_LOBBY)
+  ) return "lobby";
+
+  return "lobby";
 }
 
 function FindProxyForURL(url, host) {
   var cls   = classify(host, url);
-  var ports = (cls === "lobby") ? LOBBY_SOCKS : MATCH_SOCKS;
+  var ports = (cls === "match") ? MATCH_SOCKS : LOBBY_SOCKS;
   var v6    = chainFor(PROXIES_V6.ip, ports, host);
   var v4    = chainFor(PROXIES_V4.ip, ports, host);
-  var ch    = v6 + "; " + v4;
-
-  if (isPlainIP(host)) return ch;
-
-  if (
-    jordanClient() ||
-    hostInList(host, GAME_DOMAINS) ||
-    hostInList(host, CDN_DOMAINS) ||
-    hasKeyword(host, KW_LOBBY.concat(KW_MATCH)) ||
-    hasKeyword(url,  KW_LOBBY.concat(KW_MATCH)) ||
-    isJordanDomain(host)
-  ) return ch;
-
-  return ch;
+  return v6 + "; " + v4;
 }
