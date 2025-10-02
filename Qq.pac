@@ -4,50 +4,68 @@ function FindProxyForURL(url, host) {
   var JO_PROXIES    = "SOCKS5 91.106.109.12:20001";
 
   var LOBBY_DOMAINS = [
-    ".pubg.com",
+    "pubg.com",
     "match.pubg.com",
     "api.pubg.com",
-    ".pubgmobile.com",
-    ".gpubgm.com",
-    ".tencentgames.com",
-    ".tencent.com",
-    ".igamecj.com",
-    ".pubgmobileapi.com",
-    ".pubgmobile.live"
+    "hl.pubg.com",
+    "matchmaker.pubg.com",
+    "pubgmobile.com",
+    "gpubgm.com",
+    "igamecj.com",
+    "tencentgames.com",
+    "tencent.com",
+    "pubgmobileapi.com",
+    "pubgmobile.live",
+    "pubgmobile.ky3d.com",
+    "me-hl.pubgmobile.com",
+    "me.pubg.com"
   ];
 
   var MATCH_DOMAINS = [
-    ".pubgmcdn.com",
-    ".tencentcloud.com",
-    ".akamaized.net",
-    ".akamai.net",
-    ".cloudfront.net",
-    ".edgecastcdn.net",
-    ".cloudflare.com",
-    ".awsstatic.com",
-    ".googleusercontent.com"
+    "pubgmcdn.com",
+    "tencentcloud.com",
+    "tencentcloudapi.com",
+    "akamaized.net",
+    "akamai.net",
+    "cloudfront.net",
+    "cloudflare.com",
+    "edgecastcdn.net",
+    "awsstatic.com",
+    "googleusercontent.com",
+    "pubgmobile.com.akadns.net",
+    "pubgmobile.me.akadns.net",
+    "asia-east.pubgmobile.com",
+    "kr-a.akamai.net",
+    "dub1-pubgmcdn.ks3-cn-beijing.ksyun.com",
+    "sg1-pubgmcdn.ks3-cn-beijing.ksyun.com",
+    "*.jo.pubgmcdn.com",
+    "me-hl.pubgmobile.com",
+    "me.pubg.com"
   ];
 
-  if (hostMatches(host, LOBBY_DOMAINS)) return LOBBY_PROXIES;
-  if (hostMatches(host, MATCH_DOMAINS)) return MATCH_PROXIES;
-  if (isJordanianDomain(host))          return JO_PROXIES;
-  return JO_PROXIES;
+  var h = host.toLowerCase();
+
+  if (isJordanianDomain(h)) return JO_PROXIES;
+  if (h.indexOf("me-") === 0 || h.indexOf(".me.") !== -1) return LOBBY_PROXIES + "; " + MATCH_PROXIES;
+  if (hostMatches(h, LOBBY_DOMAINS)) return LOBBY_PROXIES;
+  if (hostMatches(h, MATCH_DOMAINS)) return MATCH_PROXIES;
+  return MATCH_PROXIES;
 }
 
-function hostMatches(host, suffixes) {
-  for (var i = 0; i < suffixes.length; i++) {
-    if (dnsDomainIs(host, suffixes[i])) return true;
+function hostMatches(host, list) {
+  for (var i = 0; i < list.length; i++) {
+    var s = list[i].toLowerCase();
+    if (s.indexOf("*") !== -1) {
+      if (shExpMatch(host, s)) return true;
+    } else {
+      if (host === s || dnsDomainIs(host, "." + s)) return true;
+    }
   }
   return false;
 }
 
 function isJordanianDomain(host) {
-  var p = host.split(".");
-  var n = p.length;
-  if (n < 2) return false;
-  var tld = p[n-1];
-  var sld = p[n-2];
-  if (tld === "jo") return true;
-  if ((sld === "co" || sld === "org" || sld === "gov" || sld === "edu" || sld === "net") && tld === "jo") return true;
-  return false;
+  var parts = host.split(".");
+  if (parts.length < 2) return false;
+  return parts[parts.length - 1] === "jo";
 }
