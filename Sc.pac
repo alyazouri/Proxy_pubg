@@ -2,7 +2,7 @@ function FindProxyForURL(url, host) {
     // تحويل الـ host إلى صيغة صغيرة للمقارنة
     host = host.toLowerCase();
 
-    // تحديد دقيق لـ domains PUBG Mobile وMENA
+    // تحديد دقيق لـ domains PUBG Mobile وMENA مع التركيز على الأردن
     if (shExpMatch(host, "api.pubgmobile.com") || 
         shExpMatch(host, "game.pubgmobile.com") || 
         shExpMatch(host, "api.mena.pubgmobile.com") || 
@@ -11,7 +11,7 @@ function FindProxyForURL(url, host) {
         shExpMatch(host, "*.tencent.com") || 
         shExpMatch(host, "91.106.109.12")) {
         if (isResolvable("91.106.109.12")) {
-            return "PROXY 91.106.109.12:20001"; // توجيه للـ proxy المحلي
+            return "PROXY 91.106.109.12:20001"; // توجيه لسيرفر محلي في الأردن
         }
         return "PROXY 203.205.159.240:20001"; // بديل MENA
     }
@@ -25,17 +25,18 @@ function FindProxyForURL(url, host) {
         return "PROXY 203.205.159.240:20001";
     }
 
-    // فحص دقيق لكلمات مفتاحية PUBG في الـ URL
+    // فحص دقيق لكلمات مفتاحية PUBG في الـ URL مع التركيز على MENA
     if ((url.indexOf("pubg") !== -1) || 
         (url.indexOf("battlegrounds") !== -1) || 
-        (url.indexOf("mena") !== -1)) {
+        (url.indexOf("mena") !== -1) || 
+        (url.indexOf("jordan") !== -1)) { // إضافة كلمة "jordan" للتركيز
         if (isResolvable("91.106.109.12")) {
             return "PROXY 91.106.109.12:20001";
         }
         return "PROXY 203.205.159.240:20001";
     }
 
-    // توجيه افتراضي فقط للاتصالات المتعلقة باللعبة
+    // توجيه افتراضي للاتصالات المتعلقة باللعبة
     if (isResolvable("91.106.109.12")) {
         return "PROXY 91.106.109.12:20001";
     }
