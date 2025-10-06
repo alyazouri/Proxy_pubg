@@ -1,3 +1,15 @@
+/*
+ * PAC script updated for PUBG routing in Jordan (Asia/Amman)
+ *
+ * This version expands the IPv4 and IPv6 ranges used to detect
+ * traffic originating from Jordan using the latest allocation data
+ * published by regional internet registries.  It also updates the
+ * list of ports used by PUBG Mobile and adds a new lobby domain
+ * (napubgm.broker.amsoveasea.com) discovered from recent traffic
+ * analysis.  These changes allow the PAC file to more accurately
+ * route local and lobby traffic through the appropriate proxy pool.
+ */
+
 var PROXY_MATCH = [
   "SOCKS5 91.106.109.12:20001",
   "SOCKS5 91.106.109.12:20002",
@@ -10,23 +22,52 @@ var PROXY_LOBBY = [
   "SOCKS5 91.106.109.12:5002"
 ];
 
+// Updated Jordan IPv4 ranges
 var JO_RANGES_IPV4 = [
-  ["185.34.16.0","255.255.252.0"],
-  ["188.247.64.0","255.255.192.0"],
-  ["95.141.32.0","255.255.240.0"],
-  ["109.107.0.0","255.255.0.0"],
-  ["82.212.64.0","255.255.192.0"]
+  ["176.29.0.0",    "255.255.0.0"],
+  ["149.200.128.0", "255.255.128.0"],
+  ["46.185.128.0",  "255.255.128.0"],
+  ["188.123.160.0", "255.255.224.0"],
+  ["188.247.64.0",  "255.255.224.0"],
+  ["94.249.0.0",    "255.255.128.0"],
+  ["94.142.32.0",   "255.255.224.0"],
+  ["95.172.192.0",  "255.255.224.0"],
+  ["95.141.208.0",  "255.255.240.0"],
+  ["91.186.224.0",  "255.255.224.0"],
+  ["91.106.96.0",   "255.255.240.0"],
+  ["109.237.192.0", "255.255.240.0"],
+  ["109.107.0.0",   "255.255.0.0"],
+  ["109.107.224.0", "255.255.224.0"],
+  ["82.212.64.0",   "255.255.192.0"],
+  ["178.77.128.0",  "255.255.192.0"],
+  ["178.238.176.0", "255.255.240.0"],
+  ["176.57.0.0",    "255.255.224.0"],
+  ["176.57.48.0",   "255.255.240.0"],
+  ["92.253.0.0",    "255.255.128.0"],
+  ["92.241.32.0",   "255.255.224.0"],
+  ["84.18.32.0",    "255.255.224.0"],
+  ["84.18.64.0",    "255.255.224.0"],
+  ["86.108.0.0",    "255.255.128.0"],
+  ["149.200.128.0", "255.255.128.0"],
+  ["176.28.128.0",  "255.255.128.0"],
+  ["188.247.64.0",  "255.255.192.0"],
+  ["185.80.24.0",   "255.255.252.0"],
+  ["185.51.212.0",  "255.255.252.0"]
 ];
 
+// Updated Jordan IPv6 prefixes
 var JO_PREFIX_IPV6 = [
-  "2a02:2e80:",
-  "2a02:2f00:",
-  "2a02:2e40:",
-  "2a02:26f0:",
-  "2a02:2e60:",
-  "2a02:2f80:"
+  "2001:32c0:", "2a00:18d0:", "2a00:18d8:", "2a00:4620:", "2a00:76e0:",
+  "2a00:b860:", "2a00:caa0:", "2a01:1d0:", "2a01:9700:", "2a01:e240:",
+  "2a01:ee40:", "2a02:009c:", "2a02:2558:", "2a02:25d8:", "2a02:5b60:",
+  "2a02:c040:", "2a02:e680:", "2a02:f0c0:", "2a03:6b00:", "2a03:6d00:",
+  "2a03:b640:", "2a04:6200:", "2a05:74c0:", "2a05:7500:", "2a06:9bc0:",
+  "2a06:bd80:", "2a07:0140:", "2a0a:2740:", "2a0c:39c0:", "2a0d:cf40:",
+  "2a10:1100:", "2a10:9740:", "2a10:d800:", "2a11:d180:", "2a13:1f00:",
+  "2a13:5c00:", "2a13:8d40:", "2a14:1a40:", "2a14:2840:", "2001:67c:2124:"
 ];
 
+// Lobby hosts (added napubgm.broker.amsoveasea.com)
 var LOBBY_HOSTS = [
   "match.pubg.com",
   "api.pubg.com",
@@ -46,6 +87,7 @@ var LOBBY_HOSTS = [
   "*.gcloud.qq.com",
   "*.qcloud.com",
   "*.game.qq.com",
+  "napubgm.broker.amsoveasea.com",
   "176.29.114.146",
   "176.29.114.179",
   "52.72.49.79",
@@ -64,15 +106,19 @@ var MATCH_HOSTS = [
 ];
 
 var RECRUIT_KEYS = [
-  "invite","recruit","party","team","group",
-  "lookingfor","looking-for","lfteam","lfm",
-  "join","clan","squad","joincode","lobby"
+  "invite", "recruit", "party", "team", "group",
+  "lookingfor", "looking-for", "lfteam", "lfm",
+  "join", "clan", "squad", "joincode", "lobby"
 ];
 
-var MATCH_PORTS = [":20001",":20002",":20003"];
+// Expanded ports for PUBG Mobile
+var MATCH_PORTS = [
+  ":10012", ":13004", ":14000", ":17000", ":17500", ":18081", ":20000",
+  ":20001", ":20002", ":20003", ":20371"
+];
 
 var JITTER_PERIOD = 60;
-var STICKY_TTL = 70000;
+var STICKY_TTL   = 70000;
 
 if (typeof __PAC_CACHE === "undefined") __PAC_CACHE = { dns:{}, sticky:{}, t:0 };
 
@@ -178,36 +224,42 @@ function FindProxyForURL(url, host){
   var c = stickyGet(host);
   if (c) return c;
 
+  // Local hosts use lobby proxy
   if (isPlainHostName(host) || host.indexOf("localhost")===0 || host.indexOf("127.")===0){
     return stickySet(host, chooseChain(host, true));
   }
 
+  // Any recruit/lobby keywords => lobby
   if (containsAny(host, RECRUIT_KEYS) || containsAny(url, RECRUIT_KEYS)){
     return stickySet(host, chooseChain(host, true));
   }
 
+  // Ports matching game traffic => match pool
   if (isMatchPort(url)){
     return stickySet(host, chooseChain(host, false));
   }
 
+  // Lobby hosts
   if (inList(host, LOBBY_HOSTS)){
     var ip = dnsResolveCached(host);
     var preferLobby = ip && ipInJordan(ip);
     return stickySet(host, chooseChain(host, !!preferLobby));
   }
 
+  // Match hosts
   if (inList(host, MATCH_HOSTS)){
     return stickySet(host, chooseChain(host, false));
   }
 
+  // Direct IPs use match pool
   if (isIPv4(host) || isIPv6(host)){
     return stickySet(host, chooseChain(host, false));
   }
 
+  // Resolve and check location
   var ip2 = dnsResolveCached(host);
   if (ip2 && ipInJordan(ip2)){
     return stickySet(host, chooseChain(host, true));
   }
-
   return stickySet(host, chooseChain(host, false));
 }
