@@ -1,6 +1,6 @@
 var LOBBY_POOL = [
-    { proxy: "SOCKS5 91.106.109.12:5001",  weight: 5, status: "active" },
-    { proxy: "SOCKS5 91.106.109.12:5002",  weight: 4, status: "active" }
+    { proxy: "SOCKS5 91.106.109.12:1080",  weight: 5, status: "active" },
+    { proxy: "SOCKS5 91.106.109.12:80",  weight: 4, status: "active" }
 ];
 
 var MATCH_POOL = [
@@ -20,8 +20,8 @@ var GAME_PORTS = {
 };
 
 var WS_PORTS = {
-    "5001": 1,
-    "5002": 1
+    "1080": 1,
+    "80": 1
 };
 
 var JO_V4 = [
