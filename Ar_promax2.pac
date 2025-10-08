@@ -1,6 +1,6 @@
 var LOBBY_POOL = [
-    { proxy: "SOCKS5 91.106.109.12:5000", weight: 5, status: "active" },
-    { proxy: "SOCKS5 91.106.109.12:5001", weight: 4, status: "active" }
+    { proxy: "SOCKS5 91.106.109.12:5001",  weight: 5, status: "active" },
+    { proxy: "SOCKS5 91.106.109.12:5002",  weight: 4, status: "active" }
 ];
 
 var MATCH_POOL = [
@@ -20,24 +20,26 @@ var GAME_PORTS = {
 };
 
 var WS_PORTS = {
-    "5000": 1,
     "5001": 1,
-    "20001": 1,
-    "20002": 1
+    "5002": 1
 };
 
 var JO_V4 = [
     ["91.106.0.0",  "255.255.0.0" ],
-    ["185.34.16.0", "255.255.252.0"]
+    ["185.34.16.0", "255.255.252.0"],
+    ["188.247.64.0","255.255.192.0"],
+    ["95.141.32.0", "255.255.240.0"],
+    ["82.212.64.0", "255.255.192.0"]
 ];
 
 var JO_V6 = [
-    "2a13:a5c7:"
+    "2a13:a5c7:",
+    "2a02:ed0:"
 ];
 
 var DNS_CACHE = {};
 
-var DNS_TTL_MS = 20000;
+var DNS_TTL_MS = 12000;
 
 function nowMs() {
     return (new Date()).getTime();
