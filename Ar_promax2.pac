@@ -10,50 +10,29 @@ var MATCH_POOL = [
 
 var BLOCK = "PROXY 0.0.0.0:0; PROXY 127.0.0.1:0";
 
-var LOBBY_RE = /^(.*\.)?(me-hl\.pubgmobile\.com|hl\.pubg\.com|matchmaker\.pubg\.com|recruit\.pubgmobile\.com|pubgmobile\.live)$/i;
+var LOBBY_RE = /^(.*\.)?(me-hl\.pubgmobile\.com|matchmaker\.pubg\.com)$/i;
 
-var MATCH_RE = /^(.*\.)?(game\.pubgmobile\.com|match\.pubg\.com|api\.pubg\.com|gpubgm\.com|pubgmcdn\.com|igamecj\.com|tencentgames\.com|tencentcloud\.com|tencent\.com)$/i;
+var MATCH_RE = /^(.*\.)?(game\.pubgmobile\.com|api\.pubgmobile\.com|gpubgm\.com)$/i;
 
 var GAME_PORTS = {
-    "10012": 1,
-    "13004": 1,
-    "14000": 1,
-    "17000": 1,
-    "17500": 1,
-    "18081": 1,
-    "20000": 1,
     "20001": 1,
-    "20002": 1,
-    "20371": 1
+    "20002": 1
 };
 
 var WS_PORTS = {
-    "20001": 1,
-    "20002": 1,
     "5000": 1,
-    "5001": 1
+    "5001": 1,
+    "20001": 1,
+    "20002": 1
 };
 
 var JO_V4 = [
-    ["185.34.16.0", "255.255.252.0"],
-    ["91.106.0.0",  "255.255.0.0"  ],
-    ["176.28.128.0","255.255.128.0"],
-    ["194.165.128.0","255.255.252.0"],
-    ["213.139.32.0","255.255.224.0"],
-    ["94.249.70.0", "255.255.255.0"],
-    ["212.118.21.0","255.255.255.0"],
-    ["176.29.72.0", "255.255.255.0"]
+    ["91.106.0.0",  "255.255.0.0" ],
+    ["185.34.16.0", "255.255.252.0"]
 ];
 
 var JO_V6 = [
-    "2a13:a5c7:",
-    "2a02:ed0:"
-];
-
-var JO_HOST_PATTERNS = [
-    /\.jo$/i,
-    /\.local\.jo$/i,
-    /jordan/i
+    "2a13:a5c7:"
 ];
 
 var DNS_CACHE = {};
@@ -116,26 +95,19 @@ function dnsResolveCached(host) {
     return ip;
 }
 
-function isV4InRanges(ip, ranges) {
+function isV4InRanges(ip, rs) {
     if (!ip || ip.indexOf(".") === -1) return false;
-    for (var i = 0; i < ranges.length; i++) {
-        if (isInNet(ip, ranges[i][0], ranges[i][1])) return true;
+    for (var i = 0; i < rs.length; i++) {
+        if (isInNet(ip, rs[i][0], rs[i][1])) return true;
     }
     return false;
 }
 
-function isV6InPrefixes(ip, prefixes) {
+function isV6InPrefixes(ip, pf) {
     if (!ip || ip.indexOf(":") === -1) return false;
     var x = ip.toLowerCase();
-    for (var i = 0; i < prefixes.length; i++) {
-        if (x.indexOf(prefixes[i]) === 0) return true;
-    }
-    return false;
-}
-
-function hostLooksJO(host) {
-    for (var i = 0; i < JO_HOST_PATTERNS.length; i++) {
-        if (JO_HOST_PATTERNS[i].test(host)) return true;
+    for (var i = 0; i < pf.length; i++) {
+        if (x.indexOf(pf[i]) === 0) return true;
     }
     return false;
 }
@@ -161,19 +133,16 @@ function FindProxyForURL(url, host) {
     var port = portFromUrl(url);
     var ip   = dnsResolveCached(host);
 
-    if (hostLooksJO(host) || ipLooksJO(ip)) {
-        if (isLobby(host)) return pickFromPool(LOBBY_POOL, host, port);
-        if (isMatch(host)) return pickFromPool(MATCH_POOL, host, port);
-        if (isWS(url) && port && (port in WS_PORTS)) {
-            if (port === "5000" || port === "5001") return pickFromPool(LOBBY_POOL, host, port);
-            if (port === "20001" || port === "20002") return pickFromPool(MATCH_POOL, host, port);
-        }
-        return pickFromPool(MATCH_POOL, host, port);
-    }
+    if (!ipLooksJO(ip)) return BLOCK;
 
     if (isLobby(host)) return pickFromPool(LOBBY_POOL, host, port);
 
-    if (isMatch(host) || (port && (port in GAME_PORTS)) || isWS(url)) return pickFromPool(MATCH_POOL, host, port);
+    if (isMatch(host) || (port && (port in GAME_PORTS))) return pickFromPool(MATCH_POOL, host, port);
+
+    if (isWS(url) && port && (port in WS_PORTS)) {
+        if (port === "5000" || port === "5001") return pickFromPool(LOBBY_POOL, host, port);
+        if (port === "20001" || port === "20002") return pickFromPool(MATCH_POOL, host, port);
+    }
 
     return BLOCK;
 }
