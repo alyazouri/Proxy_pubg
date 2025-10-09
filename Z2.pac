@@ -1,7 +1,7 @@
 var PROXY_HOST    = "91.106.109.12";
 var GENERAL_PORT  = "20001";
 
-var LOBBY_PORTS   = ["5000","50001"];
+var LOBBY_PORTS   = ["5000","5001"];
 var CLASSIC_PORTS = ["20001","20002","20003"];
 var TDM_PORTS     = ["9999","10000"];
 var RECRUIT_PORTS = ["8085","1080","5000"];
@@ -49,11 +49,25 @@ var JO_NETS = [
   ["176.29.0.0","255.255.0.0"],
   ["37.123.64.0","255.255.224.0"],
   ["185.109.192.0","255.255.252.0"],
-  ["188.247.64.0","255.255.255.0"],
+  ["188.247.64.0","255.255.192.0"],
   ["213.139.32.0","255.255.224.0"],
   ["149.200.128.0","255.255.128.0"],
   ["213.186.160.0","255.255.224.0"]
 ];
+
+var __dnsCache = {};
+var DNS_CACHE_TTL_MS = 30000;
+
+function now() { return (new Date()).getTime(); }
+
+function resolveCached(host) {
+  var entry = __dnsCache[host];
+  if (entry && (now() - entry.t) < DNS_CACHE_TTL_MS) return entry.ip;
+  var ip = dnsResolve(host);
+  if (!ip) return null;
+  __dnsCache[host] = { ip: ip, t: now() };
+  return ip;
+}
 
 function anyMatch(host, arr) {
   for (var i = 0; i < arr.length; i++) if (shExpMatch(host, arr[i])) return true;
@@ -61,7 +75,7 @@ function anyMatch(host, arr) {
 }
 
 function inAnyNet(host, nets) {
-  var ip = dnsResolve(host) || host;
+  var ip = resolveCached(host);
   if (!ip) return false;
   for (var i = 0; i < nets.length; i++) if (isInNet(ip, nets[i][0], nets[i][1])) return true;
   return false;
@@ -73,46 +87,59 @@ function hashString(s) {
   return Math.abs(h);
 }
 
-function buildChain(ports, keyA, keyB) {
-  if (!ports || ports.length === 0) return "";
-  var start = hashString(keyA + "|" + keyB) % ports.length;
+function uniquePorts(arr) {
+  var seen = {};
   var out = [];
-  for (var i = 0; i < ports.length; i++) out.push("SOCKS5 " + PROXY_HOST + ":" + ports[(start + i) % ports.length]);
+  for (var i = 0; i < arr.length; i++) {
+    var p = String(arr[i]).trim();
+    if (p && !seen[p]) { seen[p] = true; out.push(p); }
+  }
+  return out;
+}
+
+function buildChain(ports, keyA, keyB) {
+  var p = uniquePorts(ports || []);
+  if (p.length === 0) return "SOCKS5 " + PROXY_HOST + ":" + GENERAL_PORT;
+  var start = hashString((keyA||"") + "|" + (keyB||"")) % p.length;
+  var out = [];
+  for (var i = 0; i < p.length; i++) out.push("SOCKS5 " + PROXY_HOST + ":" + p[(start + i) % p.length]);
   return out.join("; ");
 }
 
 function isTDM(url, host) {
-  var u = url.toLowerCase(), h = host.toLowerCase();
-  return (u.indexOf("/tdm") !== -1 || u.indexOf("/arena") !== -1 || shExpMatch(h, "tdm.*") || shExpMatch(h, "*.tdm.*"));
+  var u = (url||"").toLowerCase(), h = (host||"").toLowerCase();
+  if (u.indexOf("/tdm") !== -1) return true;
+  if (u.indexOf("/arena") !== -1) return true;
+  if (h.indexOf("tdm.") === 0) return true;
+  if (shExpMatch(h, "*.tdm.*")) return true;
+  return false;
 }
 
 function isRecruit(url) {
-  var u = url.toLowerCase();
+  var u = (url||"").toLowerCase();
   return (u.indexOf("/team") !== -1 || u.indexOf("/invite") !== -1 || u.indexOf("/recruit") !== -1 || u.indexOf("/room") !== -1 || u.indexOf("/squad") !== -1);
 }
 
 function isWS(url) {
-  var u = url.toLowerCase();
+  var u = (url||"").toLowerCase();
   return (u.indexOf("ws://") === 0 || u.indexOf("wss://") === 0);
 }
 
+function isYouTube(host) {
+  return (shExpMatch(host,"*.youtube.com") || shExpMatch(host,"youtube.com") || shExpMatch(host,"*.youtu.be") || shExpMatch(host,"youtu.be") || shExpMatch(host,"*.googlevideo.com") || shExpMatch(host,"*.ytimg.com") || shExpMatch(host,"youtube-nocookie.com"));
+}
+
 function FindProxyForURL(url, host) {
-  host = host.toLowerCase();
-
-  if (shExpMatch(host,"*.youtube.com") || shExpMatch(host,"youtube.com") || shExpMatch(host,"*.youtu.be") || shExpMatch(host,"youtu.be") || shExpMatch(host,"*.googlevideo.com") || shExpMatch(host,"*.ytimg.com") || shExpMatch(host,"youtube-nocookie.com")) return "DIRECT";
-
+  host = (host||"").toLowerCase();
+  if (!host) return "SOCKS5 " + PROXY_HOST + ":" + GENERAL_PORT;
+  if (isYouTube(host)) return "DIRECT";
   if (inAnyNet(host, JO_NETS)) return buildChain(LOBBY_PORTS, url, host);
-
   if (anyMatch(host, H_LOBBY)) {
     if (isWS(url)) return buildChain(LOBBY_PORTS, url, host);
     return buildChain(LOBBY_PORTS, url, host);
   }
-
   if (isTDM(url, host)) return buildChain(TDM_PORTS, url, host);
-
   if (anyMatch(host, H_RECRUIT) && isRecruit(url)) return buildChain(RECRUIT_PORTS, url, host);
-
   if (anyMatch(host, H_MATCH)) return buildChain(CLASSIC_PORTS, url, host);
-
   return "SOCKS5 " + PROXY_HOST + ":" + GENERAL_PORT;
 }
