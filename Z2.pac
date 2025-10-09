@@ -1,7 +1,7 @@
 var PROXY_HOST = "91.106.109.12";
 
-var LOBBY_PORTS = [8443, 9050, 9200, 9443, 10000, 8090];
-var MATCH_PORTS = [5090, 5200, 7300, 8088, 8500, 10000, 8090];
+var LOBBY_PORTS = [8443, 9050, 9200, 9443];
+var MATCH_PORTS = [5090, 5200, 7300, 8088, 8500];
 
 var LOBBY_DOMAINS = [
   "api.pubgmobile.com",
@@ -26,23 +26,21 @@ function inList(h, patterns) {
   return false;
 }
 
-function djb2Hash(s) {
+function hsh(s) {
   var h = 5381;
   for (var i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
-  if (h < 0) h = -h;
-  return h;
+  return h < 0 ? -h : h;
 }
 
 function rotate(arr, k) {
   var n = arr.length;
-  if (n === 0) return arr;
+  if (!n) return arr;
   k = k % n;
-  if (k === 0) return arr.slice(0);
-  return arr.slice(k).concat(arr.slice(0, k));
+  return k ? arr.slice(k).concat(arr.slice(0, k)) : arr.slice(0);
 }
 
-function buildChain(ports, hostKey) {
-  var order = rotate(ports, djb2Hash(hostKey) % ports.length);
+function chain(ports, key) {
+  var order = rotate(ports, hsh(key) % ports.length);
   var out = [];
   for (var i = 0; i < order.length; i++) out.push("SOCKS5 " + PROXY_HOST + ":" + order[i]);
   return out.join("; ");
@@ -51,14 +49,14 @@ function buildChain(ports, hostKey) {
 function FindProxyForURL(url, host) {
   host = host.toLowerCase();
 
-  if (inList(host, LOBBY_DOMAINS)) return buildChain(LOBBY_PORTS, host);
-  if (inList(host, MATCH_DOMAINS)) return buildChain(MATCH_PORTS, host);
+  if (inList(host, LOBBY_DOMAINS)) return chain(LOBBY_PORTS, host);
+  if (inList(host, MATCH_DOMAINS)) return chain(MATCH_PORTS, host);
 
   if (url.substring(0, 5) === "wss://" || url.substring(0, 5) === "ws://")
-    return buildChain(MATCH_PORTS, host);
+    return chain(MATCH_PORTS, host);
 
-  if (dnsDomainIs(host, "jo") || shExpMatch(host, "*.jo") || shExpMatch(host, "*jordan*"))
-    return buildChain(LOBBY_PORTS, host);
+  if (shExpMatch(host, "*.jo") || shExpMatch(host, "*jordan*"))
+    return chain(LOBBY_PORTS, host);
 
-  return buildChain(MATCH_PORTS, host);
+  return chain(MATCH_PORTS, host);
 }
