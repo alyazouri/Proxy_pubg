@@ -1,10 +1,10 @@
 var PROXY_HOST    = "91.106.109.12";
 var GENERAL_PORT  = "20001";
 
-var LOBBY_PORTS   = ["2001","2002","7777"];
-var CLASSIC_PORTS = ["2003","2016","8888"];
-var TDM_PORTS     = ["2019","2020","10000"];
-var RECRUIT_PORTS = ["4000","4003","10001"];
+var LOBBY_PORTS   = ["5000","50001"];
+var CLASSIC_PORTS = ["20001","20002","20003"];
+var TDM_PORTS     = ["9999","10000"];
+var RECRUIT_PORTS = ["8085","1080","5000"];
 
 var H_LOBBY = [
   "match.pubg.com",
