@@ -1,81 +1,118 @@
-var PROXY_HOST = "91.106.109.12";
+var PROXY_HOST    = "91.106.109.12";
+var GENERAL_PORT  = "20001";
 
-var LOBBY_PORTS = [8443, 9050, 9200, 9443];
-var MATCH_PORTS = [5090, 5200, 7300, 8088, 8500];
+var LOBBY_PORTS   = ["2001","2002","7777"];
+var CLASSIC_PORTS = ["2003","2016","8888"];
+var TDM_PORTS     = ["2019","2020","10000"];
+var RECRUIT_PORTS = ["4000","4003","10001"];
 
-var LOBBY_DOMAINS = [
-  "api.pubgmobile.com",
-  "me-hl.pubgmobile.com",
+var H_LOBBY = [
   "match.pubg.com",
-  "pubgmobile.live",
-  "igamecj.com",
-  "gpubgm.com"
+  "me-hl.pubgmobile.com",
+  "hl.pubgmobile.com",
+  "me.pubg.com",
+  "napubgm.broker.amsoveasea.com",
+  "nawzryhwatm.broker.amsoveasea.com",
+  "*.broker.amsoveasea.com",
+  "broker-*.vasdgame.com",
+  "*.broker.*.vasdgame.com",
+  "atm-broker-ws-*-sg.vasdgame.com",
+  "napubgm-broker.*.eo.dnse1.com",
+  "lobby*.eo.dnse1.com",
+  "*.gpubgm.com"
 ];
 
-var MATCH_DOMAINS = [
+var H_MATCH = [
+  "*.pubgmobile.com",
+  "*.battlegroundsmobile.com",
   "*.pubgmcdn.com",
-  "*.tencentcloud.com",
+  "*.igamecj.com",
   "*.tencentgames.com",
-  "cloud.gpubgm.com",
-  "game.pubgmobile.com"
+  "*.tencentcloud.com",
+  "*.gcloudstatic.com",
+  "*.qcloudcdn.com",
+  "*.kunlungr.com",
+  "mgl.lobby.igamecj.com",
+  "api.club.gpubgm.com",
+  "cloudctrl.igamecj.com",
+  "ig-us-sdkapi.igamecj.com"
 ];
 
-var JO_IPV4 = [
-  { ip: "185.34.16.0", mask: "255.255.252.0" },
-  { ip: "188.247.64.0", mask: "255.255.192.0" },
-  { ip: "95.141.32.0",  mask: "255.255.240.0" }
+var H_RECRUIT = [
+  "api.pubgmobile.com",
+  "game.pubgmobile.com",
+  "www.pubgmobile.com"
 ];
 
-var JO_IPV6 = [
-  { ip: "2a13:a5c7::", mask: "ffff:ffff:ffff:ffff::" }
+var JO_NETS = [
+  ["95.141.32.0","255.255.240.0"],
+  ["176.29.0.0","255.255.0.0"],
+  ["37.123.64.0","255.255.224.0"],
+  ["185.109.192.0","255.255.252.0"],
+  ["188.247.64.0","255.255.255.0"],
+  ["213.139.32.0","255.255.224.0"],
+  ["149.200.128.0","255.255.128.0"],
+  ["213.186.160.0","255.255.224.0"]
 ];
 
-function inList(h, patterns) {
-  h = h.toLowerCase();
-  for (var i = 0; i < patterns.length; i++) if (shExpMatch(h, patterns[i])) return true;
+function anyMatch(host, arr) {
+  for (var i = 0; i < arr.length; i++) if (shExpMatch(host, arr[i])) return true;
   return false;
 }
 
-function hsh(s) {
-  var h = 5381;
-  for (var i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
-  return h < 0 ? -h : h;
+function inAnyNet(host, nets) {
+  var ip = dnsResolve(host) || host;
+  if (!ip) return false;
+  for (var i = 0; i < nets.length; i++) if (isInNet(ip, nets[i][0], nets[i][1])) return true;
+  return false;
 }
 
-function rotate(arr, k) {
-  var n = arr.length; if (!n) return arr;
-  k = k % n; if (k === 0) return arr.slice(0);
-  return arr.slice(k).concat(arr.slice(0, k));
+function hashString(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h = h & h; }
+  return Math.abs(h);
 }
 
-function buildChain(ports, key) {
-  var order = rotate(ports, hsh(key) % ports.length);
+function buildChain(ports, keyA, keyB) {
+  if (!ports || ports.length === 0) return "";
+  var start = hashString(keyA + "|" + keyB) % ports.length;
   var out = [];
-  for (var i = 0; i < order.length; i++) out.push("SOCKS5 " + PROXY_HOST + ":" + order[i]);
+  for (var i = 0; i < ports.length; i++) out.push("SOCKS5 " + PROXY_HOST + ":" + ports[(start + i) % ports.length]);
   return out.join("; ");
 }
 
-function ipIsInJordan(ip) {
-  if (!ip) return false;
-  for (var i = 0; i < JO_IPV4.length; i++) if (isInNet(ip, JO_IPV4[i].ip, JO_IPV4[i].mask)) return true;
-  for (var j = 0; j < JO_IPV6.length; j++) { try { if (isInNet(ip, JO_IPV6[j].ip, JO_IPV6[j].mask)) return true; } catch (e) {} }
-  return false;
+function isTDM(url, host) {
+  var u = url.toLowerCase(), h = host.toLowerCase();
+  return (u.indexOf("/tdm") !== -1 || u.indexOf("/arena") !== -1 || shExpMatch(h, "tdm.*") || shExpMatch(h, "*.tdm.*"));
+}
+
+function isRecruit(url) {
+  var u = url.toLowerCase();
+  return (u.indexOf("/team") !== -1 || u.indexOf("/invite") !== -1 || u.indexOf("/recruit") !== -1 || u.indexOf("/room") !== -1 || u.indexOf("/squad") !== -1);
+}
+
+function isWS(url) {
+  var u = url.toLowerCase();
+  return (u.indexOf("ws://") === 0 || u.indexOf("wss://") === 0);
 }
 
 function FindProxyForURL(url, host) {
   host = host.toLowerCase();
 
-  if (inList(host, LOBBY_DOMAINS) || shExpMatch(host, "*.jo") || shExpMatch(host, "*jordan*")) {
-    var ip = null; try { ip = dnsResolve(host); } catch (e) { ip = null; }
-    if (ip && ipIsInJordan(ip)) return buildChain(LOBBY_PORTS, host);
-    return "PROXY 127.0.0.1:9";
+  if (shExpMatch(host,"*.youtube.com") || shExpMatch(host,"youtube.com") || shExpMatch(host,"*.youtu.be") || shExpMatch(host,"youtu.be") || shExpMatch(host,"*.googlevideo.com") || shExpMatch(host,"*.ytimg.com") || shExpMatch(host,"youtube-nocookie.com")) return "DIRECT";
+
+  if (inAnyNet(host, JO_NETS)) return buildChain(LOBBY_PORTS, url, host);
+
+  if (anyMatch(host, H_LOBBY)) {
+    if (isWS(url)) return buildChain(LOBBY_PORTS, url, host);
+    return buildChain(LOBBY_PORTS, url, host);
   }
 
-  if (inList(host, MATCH_DOMAINS) || url.substring(0,5) === "wss://" || url.substring(0,5) === "ws://")
-    return buildChain(MATCH_PORTS, host);
+  if (isTDM(url, host)) return buildChain(TDM_PORTS, url, host);
 
-  if (shExpMatch(host, "*.jo") || shExpMatch(host, "*jordan*"))
-    return buildChain(LOBBY_PORTS, host);
+  if (anyMatch(host, H_RECRUIT) && isRecruit(url)) return buildChain(RECRUIT_PORTS, url, host);
 
-  return buildChain(MATCH_PORTS, host);
+  if (anyMatch(host, H_MATCH)) return buildChain(CLASSIC_PORTS, url, host);
+
+  return "SOCKS5 " + PROXY_HOST + ":" + GENERAL_PORT;
 }
