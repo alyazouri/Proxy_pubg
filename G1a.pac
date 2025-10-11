@@ -1,11 +1,10 @@
 var PROXIES = [
-  { address: "SOCKS5 91.106.109.12:1080", weight: 4, status: "active", lastChecked: 0 },
-  { address: "SOCKS5 91.106.109.50:1080", weight: 3, status: "active", lastChecked: 0 }
+  { address: "SOCKS5 91.106.109.12:14001", weight: 4, status: "active" },
+  { address: "SOCKS5 91.106.109.50:1080", weight: 3, status: "active" }
 ];
-var ROTATE_INTERVAL_MS = 15000;
-var HEALTH_CHECK_INTERVAL_MS = 15000;
-var DNS_CACHE_TTL_MS = 600000;
-var CACHE_MAX_SIZE = 1000;
+var ROTATE_INTERVAL_MS = 20000;
+var HEALTH_CHECK_INTERVAL_MS = 20000;
+var DNS_CACHE_TTL_MS = 300000;
 var MAX_RETRIES = 1;
 var FORCE_ALL_TO_PROXY = false;
 var ALLOW_DIRECT_FOR_COMMON = true;
@@ -18,8 +17,7 @@ var LOCAL_IP_RANGES = [
 
 var LOCAL_HOST_PATTERNS = [
   "localhost", "*.local", "*.lan", "*.home", "*.internal",
-  "*.router", "*.gateway", "*.nas", "*.home.arpa", "*.localdomain",
-  "*.intranet", "*.private", "*.corp"
+  "*.router", "*.gateway", "*.nas", "*.home.arpa", "*.localdomain"
 ];
 
 var GAME_DOMAINS = [
@@ -34,45 +32,23 @@ var GAME_KEYWORDS = [
   "*tencentyun*", "*gameloop*", "*match*", "*squad*", "*party*", "*team*", "*rank*"
 ];
 
-var IGNORE_DOMAINS = ["*ads.*", "*.doubleclick.net", "*.analytics.*", "*.crashlytics.com"];
-
-var GAME_PORTS = new Set([20001, 20003]);
+var GAME_PORTS = [20001, 20003];
 
 var DYNAMIC_DOMAINS_URL = "https://raw.githubusercontent.com/alyazouri/Proxy_pubg/main/G1a.json";
 
 function now() { return Date.now(); }
 
-function LRUCache(maxSize) {
-  var cache = new Map();
-  return {
-    get: function(key) { return cache.get(key); },
-    set: function(key, value) {
-      if (cache.size >= maxSize) cache.delete(cache.keys().next().value);
-      cache.set(key, value);
-    },
-    has: function(key) { return cache.has(key); }
-  };
-}
-
-var dnsCache = LRUCache(CACHE_MAX_SIZE);
-var proxyCache = LRUCache(10);
-var gameDomainCache = LRUCache(CACHE_MAX_SIZE);
-var localCache = new Set(LOCAL_HOST_PATTERNS);
+var dnsCache = {};
 var domainCache = { lastUpdated: 0, domains: GAME_DOMAINS };
-var gameDomainRegex = new RegExp(GAME_DOMAINS.map(d => d.replace(/\*/g, ".*")).join("|"), "i");
-var gameKeywordRegex = new RegExp(GAME_KEYWORDS.map(k => k.replace(/\*/g, ".*")).join("|"), "i");
-var ignoreDomainRegex = new RegExp(IGNORE_DOMAINS.map(d => d.replace(/\*/g, ".*")).join("|"), "i");
-var localHostRegex = new RegExp(LOCAL_HOST_PATTERNS.map(p => p.replace(/\*/g, ".*")).join("|"), "i");
-
 function resolveWithCache(host, retries = 0) {
-  var cacheEntry = dnsCache.get(host);
+  var cacheEntry = dnsCache[host];
   if (cacheEntry && now() - cacheEntry.timestamp < DNS_CACHE_TTL_MS) {
     return cacheEntry.ip;
   }
   try {
     var ip = dnsResolve(host);
     if (ip) {
-      dnsCache.set(host, { ip: ip, timestamp: now() });
+      dnsCache[host] = { ip: ip, timestamp: now() };
       return ip;
     } else if (retries < MAX_RETRIES) {
       return resolveWithCache(host, retries + 1);
@@ -90,7 +66,6 @@ function updateDynamicDomains() {
     if (newDomains && Array.isArray(newDomains)) {
       domainCache.domains = newDomains.concat(GAME_DOMAINS);
       domainCache.lastUpdated = now();
-      gameDomainRegex = new RegExp(domainCache.domains.map(d => d.replace(/\*/g, ".*")).join("|"), "i");
     }
   } catch (e) {}
 }
@@ -100,13 +75,7 @@ function checkProxyHealth() {
   if (now() - lastHealthCheck < HEALTH_CHECK_INTERVAL_MS) return;
   lastHealthCheck = now;
   PROXIES.forEach(function(proxy) {
-    var cached = proxyCache.get(proxy.address);
-    if (cached && now() - cached.timestamp < HEALTH_CHECK_INTERVAL_MS) {
-      proxy.status = cached.status;
-    } else {
-      proxy.status = testProxy(proxy.address) ? "active" : "inactive";
-      proxyCache.set(proxy.address, { status: proxy.status, timestamp: now() });
-    }
+    proxy.status = testProxy(proxy.address) ? "active" : "inactive";
   });
 }
 
@@ -128,26 +97,21 @@ function getRotatedProxy() {
   return activeProxies[0].address;
 }
 
-function hostMatchesRegex(host, regex) {
-  return regex.test(host);
+function hostMatchesAny(host, arr) {
+  return arr.some(function(pattern) { return shExpMatch(host, pattern); });
 }
 
 function portMatchesGame(url) {
   var colonIndex = url.lastIndexOf(":");
   if (colonIndex !== -1) {
     var port = parseInt(url.substring(colonIndex + 1), 10);
-    return !isNaN(port) && GAME_PORTS.has(port);
+    return !isNaN(port) && GAME_PORTS.includes(port);
   }
   return false;
 }
 
 function isWebSocket(url) {
   return url.startsWith("ws://") || url.startsWith("wss://");
-}
-
-function smartRedirect(url, host) {
-  if (hostMatchesRegex(host, ignoreDomainRegex)) return "DIRECT";
-  return null;
 }
 
 function log(message) {}
@@ -158,16 +122,9 @@ function FindProxyForURL(url, host) {
     url = url.toLowerCase();
     host = host.toLowerCase();
 
-    var redirect = smartRedirect(url, host);
-    if (redirect) return redirect;
+    if (isPlainHostName(host) || hostMatchesAny(host, LOCAL_HOST_PATTERNS)) return "DIRECT";
 
-    if (isPlainHostName(host) || localCache.has(host) || hostMatchesRegex(host, localHostRegex)) return "DIRECT";
-
-    var cachedMatch = gameDomainCache.get(host);
-    if (cachedMatch !== undefined) return cachedMatch ? getRotatedProxy() : "DIRECT";
-
-    if (isWebSocket(url) || hostMatchesRegex(host, gameDomainRegex) || hostMatchesRegex(host, gameKeywordRegex) || portMatchesGame(url)) {
-      gameDomainCache.set(host, true);
+    if (isWebSocket(url) || hostMatchesAny(host, domainCache.domains) || hostMatchesAny(host, GAME_KEYWORDS) || portMatchesGame(url)) {
       return getRotatedProxy();
     }
 
@@ -175,17 +132,12 @@ function FindProxyForURL(url, host) {
     if (ip) {
       for (var i = 0; i < LOCAL_IP_RANGES.length; i++) {
         var range = LOCAL_IP_RANGES[i].split("/");
-        if (isInNet(ip, range[0], cidrToMask(parseInt(range[1], 10)))) {
-          gameDomainCache.set(host, false);
-          return "DIRECT";
-        }
+        if (isInNet(ip, range[0], cidrToMask(parseInt(range[1], 10)))) return "DIRECT";
       }
     } else {
-      gameDomainCache.set(host, true);
       return getRotatedProxy();
     }
 
-    gameDomainCache.set(host, false);
     return ALLOW_DIRECT_FOR_COMMON ? "DIRECT" : getRotatedProxy();
   } catch (e) {
     return "DIRECT";
