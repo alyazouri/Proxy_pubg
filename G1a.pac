@@ -1,10 +1,10 @@
 var PROXIES = [
-  { address: "SOCKS5 91.106.109.12:5000", weight: 4, status: "active", lastChecked: 0 },
+  { address: "SOCKS5 91.106.109.12:1080", weight: 4, status: "active", lastChecked: 0 },
   { address: "SOCKS5 91.106.109.50:1080", weight: 3, status: "active", lastChecked: 0 }
 ];
-var ROTATE_INTERVAL_MS = 10000;
-var HEALTH_CHECK_INTERVAL_MS = 10000;
-var DNS_CACHE_TTL_MS = 900000;
+var ROTATE_INTERVAL_MS = 5000;
+var HEALTH_CHECK_INTERVAL_MS = 5000;
+var DNS_CACHE_TTL_MS = 1800000;
 var DOMAIN_CACHE_TTL_MS = 14400000;
 var MAX_RETRIES = 1;
 var FORCE_ALL_TO_PROXY = false;
@@ -16,14 +16,17 @@ var LOCAL_IP_RANGES = [
   "198.18.0.0/15", "224.0.0.0/4", "240.0.0.0/4",
   "188.247.0.0/16", "149.200.0.0/16", "185.83.60.0/22", "94.142.0.0/17",
   "94.249.0.0/16", "46.185.0.0/16", "92.253.0.0/16", "213.139.0.0/16",
-  "46.32.0.0/16", "176.29.0.0/16", "92.241.0.0/16", "109.107.0.0/16"
+  "82.212.0.0/16", "5.198.0.0/16", "46.32.0.0/16", "176.29.0.0/16",
+  "46.235.0.0/16", "178.152.0.0/16", "92.241.0.0/16", "109.107.0.0/16",
+  "37.202.0.0/16", "37.75.0.0/16"
 ];
 
 var LOCAL_HOST_PATTERNS = [
   "localhost", "*.local", "*.lan", "*.home", "*.internal",
   "*.router", "*.gateway", "*.nas", "*.home.arpa", "*.localdomain",
   "*.intranet", "*.private", "*.corp", "*.orange.jo", "*.orange.com",
-  "*.zain.com", "*.umniah.com", "*.ztec.jo", "*.jo"
+  "*.zain.com", "*.zain.jo", "*.umniah.com", "*.umniah.jo", "*.ztec.jo",
+  "*.viva.jo", "*.jordantel.jo", "*.jo"
 ];
 
 var GAME_DOMAINS = [
@@ -107,10 +110,14 @@ function checkProxyHealth() {
 }
 
 var currentWeightIndex = 0;
+var lastProxyFail = 0;
 function getRotatedProxy() {
   checkProxyHealth();
   var activeProxies = PROXIES.filter(function(p) { return p.status === "active"; });
-  if (activeProxies.length === 0) return "DIRECT";
+  if (activeProxies.length === 0 || (now() - lastProxyFail > 3000)) {
+    lastProxyFail = now();
+    return "DIRECT";
+  }
   var totalWeight = activeProxies.reduce(function(sum, p) { return sum + p.weight; }, 0);
   var selected = Math.floor(Math.random() * totalWeight);
   var current = 0;
