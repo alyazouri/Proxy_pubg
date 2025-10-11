@@ -1,5 +1,5 @@
 var PROXIES = [
-  { address: "SOCKS5 91.106.109.12:14001", weight: 4, status: "active" },
+  { address: "SOCKS5 91.106.109.12:1080", weight: 4, status: "active" },
   { address: "SOCKS5 91.106.109.50:1080", weight: 3, status: "active" }
 ];
 var ROTATE_INTERVAL_MS = 20000;
