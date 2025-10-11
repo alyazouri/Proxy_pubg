@@ -1,5 +1,5 @@
 var PROXIES = [
-  { address: "SOCKS5 91.106.109.12:1080", weight: 4, status: "active", lastChecked: 0 },
+  { address: "SOCKS5 91.106.109.12:5000", weight: 4, status: "active", lastChecked: 0 },
   { address: "SOCKS5 91.106.109.50:1080", weight: 3, status: "active", lastChecked: 0 }
 ];
 var ROTATE_INTERVAL_MS = 10000;
@@ -14,14 +14,16 @@ var LOCAL_IP_RANGES = [
   "0.0.0.0/8", "10.0.0.0/8", "127.0.0.0/8", "169.254.0.0/16",
   "172.16.0.0/12", "192.0.2.0/24", "192.88.99.0/24", "192.168.0.0/16",
   "198.18.0.0/15", "224.0.0.0/4", "240.0.0.0/4",
-  "188.247.0.0/16", "149.200.0.0/16", "185.83.60.0/22", "94.142.0.0/17"
+  "188.247.0.0/16", "149.200.0.0/16", "185.83.60.0/22", "94.142.0.0/17",
+  "94.249.0.0/16", "46.185.0.0/16", "92.253.0.0/16", "213.139.0.0/16",
+  "46.32.0.0/16", "176.29.0.0/16", "92.241.0.0/16", "109.107.0.0/16"
 ];
 
 var LOCAL_HOST_PATTERNS = [
   "localhost", "*.local", "*.lan", "*.home", "*.internal",
   "*.router", "*.gateway", "*.nas", "*.home.arpa", "*.localdomain",
   "*.intranet", "*.private", "*.corp", "*.orange.jo", "*.orange.com",
-  "*.ztec.jo", "*.umniah.jo", "*.jo"
+  "*.zain.com", "*.umniah.com", "*.ztec.jo", "*.jo"
 ];
 
 var GAME_DOMAINS = [
