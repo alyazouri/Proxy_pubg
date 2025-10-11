@@ -1,5 +1,4 @@
 [
-  // دومينات PUBG (من الكود الأصلي)
   "*pubgmobile.com",
   "*tencentgames.com",
   "*qcloud.com",
@@ -14,8 +13,6 @@
   "*proximabeta.com",
   "*pubgmobile.global",
   "*levelinfinite.com",
-
-  // دومينات Tencent الأخرى
   "*honorofkings.com",
   "*arenaofvalor.com",
   "*timi.tencent.com",
@@ -33,10 +30,6 @@
   "*toweroffantasy-global.com",
   "*nikke-en.com",
   "*fifaonline4.qq.com",
-  "*tencent.com",
-  "*qq.com",
-
-  // دومينات Riot Games
   "*leagueoflegends.com",
   "*lolesports.com",
   "*riotgames.com",
